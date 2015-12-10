@@ -78,6 +78,7 @@ func (s *Set) Iterate() <-chan interface{} {
     ch := make(chan interface{})
     go func() {
         for i := range *s { ch <- i }
+        close(ch)
     }()
     return ch
 }
