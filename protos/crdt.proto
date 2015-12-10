@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package crdt;
+
+service CRDT {
+    // Managerial Operations
+    rpc CreateSet(EmptyMessage) returns (SetIdMessage) {}
+    rpc DeleteSet(SetIdMessage) returns (StatusResponse) {}
+    rpc ListSets(EmptyMessage) returns (stream SetIdMessage) {}
+
+    // Set Operations
+    rpc GetObjects(SetIdMessage) returns (stream ObjectMessage) {}
+
+    rpc AddObject(ObjectRequest) returns (StatusResponse) {}
+    rpc RemoveObject(ObjectRequest) returns (StatusResponse) {}
+
+    rpc Contains(ObjectRequest) returns (BooleanMessage) {}
+
+    // Set-on-Set Operations
+    rpc Equals(SetIdPairMessage) returns (BooleanMessage) {}
+    rpc Merge(SetIdPairMessage) returns (StatusResponse) {}
+    rpc Clone(SetIdMessage) returns (SetIdMessage) {}
+}
+
+message EmptyMessage { /* ... */ }
+message BooleanMessage { bool value = 1; }
+
+message SetIdMessage {
+    string setId = 1;
+}
+
+message SetIdPairMessage {
+    string setId1 = 1;
+    string setId2 = 2;
+}
+
+message ObjectMessage {
+    string  object = 1;
+}
+
+message ObjectRequest {
+    string setId = 1;
+    string object = 2;
+}
+
+message StatusResponse {
+    bool   success = 1;
+    string mesg    = 2;
+}
+
