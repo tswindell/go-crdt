@@ -20,6 +20,7 @@
  * SOFTWARE.
  *
  */
+
 package set
 
 // Common Go representation of a math set.
