@@ -39,7 +39,7 @@ func (d *TwoPhaseSetCommandListener) DoList(client *crdb.Client) {
     d.CheckError("Failed to list set", e)
 
     for item := range ch {
-        fmt.Println(item)
+        fmt.Println(string(item))
     }
 }
 
