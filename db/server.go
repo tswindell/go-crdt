@@ -30,13 +30,18 @@ func NewServer() *Server {
     d.service = grpc.NewServer()
     d.database = NewDatabase()
 
+    // Register resource data types.
     tGSet := NewGSetResourceFactory(d.database)
     d.database.RegisterType(tGSet)
 
+    t2PSet := NewTwoPhaseSetResourceFactory(d.database)
+    d.database.RegisterType(t2PSet)
+
     // Register this instance as a CRDT service on our listener.
     pb.RegisterCRDTServer(d.service, d)
-    pb.RegisterGrowOnlySetServer(d.service, tGSet)
 
+    pb.RegisterGrowOnlySetServer(d.service, tGSet)
+    pb.RegisterTwoPhaseSetServer(d.service, t2PSet)
     return d
 }
 

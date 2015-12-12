@@ -100,6 +100,7 @@ func main() {
 
     Types:
         crdt:gset
+        crdt:2pset
 
 `
 
@@ -107,6 +108,7 @@ func main() {
 
     commands = append(commands, &CRDBCommandListener{})
     commands = append(commands, &CRDBGSetCommandListener{})
+    commands = append(commands, &TwoPhaseSetCommandListener{})
 
     client := crdb.NewClient()
     if e := client.ConnectToHost(*hostport); e != nil {

@@ -11,7 +11,7 @@ import (
 type CRDBGSetCommandListener struct {}
 
 func (d *CRDBGSetCommandListener) RespondTo(cmd string) bool {
-    return cmd == "crdt:gset"
+    return cmd == "crdt:gset" || cmd == "gset"
 }
 
 func (d *CRDBGSetCommandListener) ShowUsage(usage string) {
@@ -87,10 +87,11 @@ func (d *CRDBGSetCommandListener) DoMerge(client *crdb.Client) {
 func (d *CRDBGSetCommandListener) DoClone(client *crdb.Client) {
     d.CheckNArg(3, "clone <ReferenceId>")
 
-    result, e := client.GSetClient.Clone(crdb.ReferenceId(flag.Arg(2)))
+    resourceId, resourceKey, e := client.GSetClient.Clone(crdb.ReferenceId(flag.Arg(2)))
     d.CheckError("Failed to do clone operation on set", e)
 
-    fmt.Println("ResourceId:", result)
+    fmt.Println("ResourceId:", resourceId)
+    fmt.Println("ResourceKey:", resourceKey)
 }
 
 func (d *CRDBGSetCommandListener) Execute(client *crdb.Client) {

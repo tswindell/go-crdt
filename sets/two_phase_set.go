@@ -20,6 +20,7 @@
  * SOFTWARE.
  *
  */
+
 package set
 
 type TwoPhase struct {
@@ -72,6 +73,11 @@ func (s *TwoPhase) Clone() *TwoPhase {
     result.added = s.added.Clone()
     result.removed = s.removed.Clone()
     return result
+}
+
+func (s *TwoPhase) Iterate() <-chan interface{} {
+    in := s.ToSet()
+    return in.Iterate()
 }
 
 func (s *TwoPhase) ToSet() Set {

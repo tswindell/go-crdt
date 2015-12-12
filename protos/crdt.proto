@@ -162,5 +162,6 @@ message SetCloneRequest {
 message SetCloneResponse {
     Status status = 1;
     string resourceId = 2; // New ResourceId
+    string resourceKey = 3;
 }
 

@@ -11,7 +11,10 @@ import (
 
 type Client struct {
     pb.CRDTClient
+
+    // Resource type declaration
     GSetClient
+    TwoPhaseSetClient
 
     connection *grpc.ClientConn
 }
@@ -28,8 +31,12 @@ func (d *Client) ConnectToHost(hostport string) error {
     d.connection = conn
     d.CRDTClient = pb.NewCRDTClient(conn)
 
+    // Resource type registration.
     gsets := NewGSetClient(conn)
     d.GSetClient = *gsets
+
+    tpsets := NewTwoPhaseSetClient(conn)
+    d.TwoPhaseSetClient = *tpsets
 
     return nil
 }

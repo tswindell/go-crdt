@@ -10,19 +10,19 @@ import (
     pb "github.com/tswindell/go-crdt/protos"
 )
 
-type GSetClient struct {
-    pb.GrowOnlySetClient
+type TwoPhaseSetClient struct {
+    pb.TwoPhaseSetClient
 }
 
-func NewGSetClient(connection *grpc.ClientConn) *GSetClient {
-    d := new(GSetClient)
-    d.GrowOnlySetClient = pb.NewGrowOnlySetClient(connection)
+func NewTwoPhaseSetClient(connection *grpc.ClientConn) *TwoPhaseSetClient {
+    d := new(TwoPhaseSetClient)
+    d.TwoPhaseSetClient = pb.NewTwoPhaseSetClient(connection)
     return d
 }
 
-// GSet API extensions to CRDB Client type
-func (d *GSetClient) List(referenceId ReferenceId) (chan []byte, error) {
-    r, e := d.GrowOnlySetClient.List(context.Background(),
+// TwoPhase API extensions to CRDB Client type
+func (d *TwoPhaseSetClient) List(referenceId ReferenceId) (chan []byte, error) {
+    r, e := d.TwoPhaseSetClient.List(context.Background(),
                                      &pb.SetListRequest{
                                          ReferenceId: string(referenceId),
                                      })
@@ -41,8 +41,8 @@ func (d *GSetClient) List(referenceId ReferenceId) (chan []byte, error) {
     return ch, nil
 }
 
-func (d *GSetClient) Insert(referenceId ReferenceId, object []byte) error {
-    r, e := d.GrowOnlySetClient.Insert(context.Background(),
+func (d *TwoPhaseSetClient) Insert(referenceId ReferenceId, object []byte) error {
+    r, e := d.TwoPhaseSetClient.Insert(context.Background(),
                                        &pb.SetInsertRequest{
                                            Object: &pb.ResourceObject{
                                                ReferenceId: string(referenceId),
@@ -53,8 +53,20 @@ func (d *GSetClient) Insert(referenceId ReferenceId, object []byte) error {
     return nil
 }
 
-func (d *GSetClient) Length(referenceId ReferenceId) (uint64, error) {
-    r, e := d.GrowOnlySetClient.Length(context.Background(),
+func (d *TwoPhaseSetClient) Remove(referenceId ReferenceId, object []byte) error {
+    r, e := d.TwoPhaseSetClient.Remove(context.Background(),
+                                       &pb.SetRemoveRequest{
+                                           Object: &pb.ResourceObject{
+                                               ReferenceId: string(referenceId),
+                                               Object: object,
+                                           }})
+    if e != nil { return e }
+    if !r.Status.Success { return fmt.Errorf(r.Status.ErrorType) }
+    return nil
+}
+
+func (d *TwoPhaseSetClient) Length(referenceId ReferenceId) (uint64, error) {
+    r, e := d.TwoPhaseSetClient.Length(context.Background(),
                                        &pb.SetLengthRequest{
                                            ReferenceId: string(referenceId),
                                        })
@@ -63,8 +75,8 @@ func (d *GSetClient) Length(referenceId ReferenceId) (uint64, error) {
     return r.Length, nil
 }
 
-func (d *GSetClient) Contains(referenceId ReferenceId, object []byte) (bool, error) {
-    r, e := d.GrowOnlySetClient.Contains(context.Background(),
+func (d *TwoPhaseSetClient) Contains(referenceId ReferenceId, object []byte) (bool, error) {
+    r, e := d.TwoPhaseSetClient.Contains(context.Background(),
                                          &pb.SetContainsRequest{
                                              Object: &pb.ResourceObject{
                                                  ReferenceId: string(referenceId),
@@ -75,8 +87,8 @@ func (d *GSetClient) Contains(referenceId ReferenceId, object []byte) (bool, err
     return r.Result, nil
 }
 
-func (d *GSetClient) Equals(referenceId, otherReferenceId ReferenceId) (bool, error) {
-    r, e := d.GrowOnlySetClient.Equals(context.Background(),
+func (d *TwoPhaseSetClient) Equals(referenceId, otherReferenceId ReferenceId) (bool, error) {
+    r, e := d.TwoPhaseSetClient.Equals(context.Background(),
                                        &pb.SetEqualsRequest{
                                            ReferenceId: string(referenceId),
                                            OtherReferenceId: string(otherReferenceId),
@@ -86,8 +98,8 @@ func (d *GSetClient) Equals(referenceId, otherReferenceId ReferenceId) (bool, er
     return r.Result, nil
 }
 
-func (d *GSetClient) Merge(referenceId, otherReferenceId ReferenceId) error {
-    r, e := d.GrowOnlySetClient.Merge(context.Background(),
+func (d *TwoPhaseSetClient) Merge(referenceId, otherReferenceId ReferenceId) error {
+    r, e := d.TwoPhaseSetClient.Merge(context.Background(),
                                        &pb.SetMergeRequest{
                                            ReferenceId: string(referenceId),
                                            OtherReferenceId: string(otherReferenceId),
@@ -97,8 +109,8 @@ func (d *GSetClient) Merge(referenceId, otherReferenceId ReferenceId) error {
     return nil
 }
 
-func (d *GSetClient) Clone(referenceId ReferenceId) (ResourceId, ResourceKey, error) {
-    r, e := d.GrowOnlySetClient.Clone(context.Background(),
+func (d *TwoPhaseSetClient) Clone(referenceId ReferenceId) (ResourceId, ResourceKey, error) {
+    r, e := d.TwoPhaseSetClient.Clone(context.Background(),
                                       &pb.SetCloneRequest{
                                           ReferenceId: string(referenceId),
                                       })
