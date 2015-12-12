@@ -159,7 +159,7 @@ func (d *TwoPhaseSetResourceFactory) Contains(ctx context.Context, m *pb.SetCont
         status.Success = false
         status.ErrorType = e.Error()
     } else {
-        result = gset.Contains(m.Object)
+        result = gset.Contains(base64.StdEncoding.EncodeToString(m.Object.Object))
     }
 
     return &pb.SetContainsResponse{Status: status, Result: result}, nil
