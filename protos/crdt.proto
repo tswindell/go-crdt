@@ -2,49 +2,164 @@ syntax = "proto3";
 
 package crdt;
 
+//
+// The CRDT service describes an interface for creating and retrieving stored
+// data from the datastore. Types are specified by semantic URI identifiers,
+// like: crdt:gset, crdt:2pset, crdt:gcounter
+//
 service CRDT {
-    // Managerial Operations
-    rpc CreateSet(EmptyMessage) returns (SetIdMessage) {}
-    rpc DeleteSet(SetIdMessage) returns (StatusResponse) {}
-    rpc ListSets(EmptyMessage) returns (stream SetIdMessage) {}
+    // Create a new data set in internal datastore.
+    rpc Create(CreateRequest) returns (CreateResponse) {}
 
-    // Set Operations
-    rpc GetObjects(SetIdMessage) returns (stream ObjectMessage) {}
+    // Attach to an existing data set.
+    rpc Attach(AttachRequest) returns (AttachResponse) {}
 
-    rpc AddObject(ObjectRequest) returns (StatusResponse) {}
-    rpc RemoveObject(ObjectRequest) returns (StatusResponse) {}
+    // Detach ReferenceId reference from internal datastore.
+    rpc Detach(DetachRequest) returns (DetachResponse) {}
 
-    rpc Contains(ObjectRequest) returns (BooleanMessage) {}
-
-    // Set-on-Set Operations
-    rpc Equals(SetIdPairMessage) returns (BooleanMessage) {}
-    rpc Merge(SetIdPairMessage) returns (StatusResponse) {}
-    rpc Clone(SetIdMessage) returns (SetIdMessage) {}
+    // Returns a list of supported data types.
+    rpc SupportedTypes(EmptyMessage) returns (SupportedTypesResponse) {}
+    rpc IsSupportedType(TypeMessage) returns (BooleanResponse) {}
 }
 
-message EmptyMessage { /* ... */ }
-message BooleanMessage { bool value = 1; }
+message EmptyMessage {}
 
-message SetIdMessage {
-    string setId = 1;
+message BooleanResponse {
+    bool value = 1;
 }
 
-message SetIdPairMessage {
-    string setId1 = 1;
-    string setId2 = 2;
+message Status {
+    bool   success   = 1;
+    string errorType = 2; // Error Type specification URI
 }
 
-message ObjectMessage {
-    string  object = 1;
+message TypeMessage {
+    string type = 1; // Type specification URI.
 }
 
-message ObjectRequest {
-    string setId = 1;
-    string object = 2;
+message ResourceObject {
+    string referenceId = 1; // Datastore reference Id.
+    bytes  object = 2;
 }
 
-message StatusResponse {
-    bool   success = 1;
-    string mesg    = 2;
+message CreateRequest {
+    string resourceType = 1; // Type specification URI.
+}
+
+message CreateResponse {
+    Status status      = 1;
+    string referenceId = 2; // Client specific pointer to dataset.
+}
+
+message AttachRequest {
+    string resourceId  = 1; // Presumably IPFS hash
+    string resourceKey = 2;
+}
+
+message AttachResponse {
+    Status status      = 1;
+    string referenceId = 2; // Client specific pointer to dataset.
+}
+
+message DetachRequest {
+    string referenceId = 1; // Client specific pointer to dataset.
+}
+
+message DetachResponse {
+    Status status = 1;
+}
+
+message SupportedTypesResponse {
+    repeated TypeMessage types = 1;
+}
+
+//
+// Set DataType service definitions
+//
+service GrowOnlySet {
+    rpc List(SetListRequest) returns (stream ResourceObject) {}
+    rpc Insert(SetInsertRequest) returns (SetInsertResponse) {}
+    rpc Length(SetLengthRequest) returns (SetLengthResponse) {}
+    rpc Contains(SetContainsRequest) returns (SetContainsResponse) {}
+    rpc Equals(SetEqualsRequest) returns (SetEqualsResponse) {}
+    rpc Merge(SetMergeRequest) returns (SetMergeResponse) {}
+    rpc Clone(SetCloneRequest) returns (SetCloneResponse) {}
+}
+
+service TwoPhaseSet {
+    rpc List(SetListRequest) returns (stream ResourceObject) {}
+    rpc Insert(SetInsertRequest) returns (SetInsertResponse) {}
+    rpc Remove(SetRemoveRequest) returns (SetRemoveResponse) {}
+    rpc Length(SetLengthRequest) returns (SetLengthResponse) {}
+    rpc Contains(SetContainsRequest) returns (SetContainsResponse) {}
+    rpc Equals(SetEqualsRequest) returns (SetEqualsResponse) {}
+    rpc Merge(SetMergeRequest) returns (SetMergeResponse) {}
+    rpc Clone(SetCloneRequest) returns (SetCloneResponse) {}
+}
+
+message SetListRequest {
+    string referenceId = 1;
+}
+
+message SetInsertRequest {
+    ResourceObject object = 1;
+}
+
+message SetInsertResponse {
+    Status status = 1;
+}
+
+message SetRemoveRequest {
+    ResourceObject object = 1;
+}
+
+message SetRemoveResponse {
+    Status status = 1;
+}
+
+message SetLengthRequest {
+    string referenceId = 1;
+}
+
+message SetLengthResponse {
+    Status status = 1;
+    uint64 length = 2;
+}
+
+message SetContainsRequest {
+    ResourceObject object = 1;
+}
+
+message SetContainsResponse {
+    Status status = 1;
+    bool   result = 2;
+}
+
+message SetEqualsRequest {
+    string referenceId = 1;
+    string otherReferenceId = 2;
+}
+
+message SetEqualsResponse {
+    Status status = 1;
+    bool   result = 2;
+}
+
+message SetMergeRequest {
+    string referenceId = 1;
+    string otherReferenceId = 2;
+}
+
+message SetMergeResponse {
+    Status status = 1;
+}
+
+message SetCloneRequest {
+    string referenceId = 1;
+}
+
+message SetCloneResponse {
+    Status status = 1;
+    string newReferenceId = 2;
 }
 

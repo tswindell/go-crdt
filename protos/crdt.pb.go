@@ -10,12 +10,32 @@ It is generated from these files:
 
 It has these top-level messages:
 	EmptyMessage
-	BooleanMessage
-	SetIdMessage
-	SetIdPairMessage
-	ObjectMessage
-	ObjectRequest
-	StatusResponse
+	BooleanResponse
+	Status
+	TypeMessage
+	ResourceObject
+	CreateRequest
+	CreateResponse
+	AttachRequest
+	AttachResponse
+	DetachRequest
+	DetachResponse
+	SupportedTypesResponse
+	SetListRequest
+	SetInsertRequest
+	SetInsertResponse
+	SetRemoveRequest
+	SetRemoveResponse
+	SetLengthRequest
+	SetLengthResponse
+	SetContainsRequest
+	SetContainsResponse
+	SetEqualsRequest
+	SetEqualsResponse
+	SetMergeRequest
+	SetMergeResponse
+	SetCloneRequest
+	SetCloneResponse
 */
 package crdt
 
@@ -40,56 +60,322 @@ func (m *EmptyMessage) Reset()         { *m = EmptyMessage{} }
 func (m *EmptyMessage) String() string { return proto.CompactTextString(m) }
 func (*EmptyMessage) ProtoMessage()    {}
 
-type BooleanMessage struct {
+type BooleanResponse struct {
 	Value bool `protobuf:"varint,1,opt,name=value" json:"value,omitempty"`
 }
 
-func (m *BooleanMessage) Reset()         { *m = BooleanMessage{} }
-func (m *BooleanMessage) String() string { return proto.CompactTextString(m) }
-func (*BooleanMessage) ProtoMessage()    {}
+func (m *BooleanResponse) Reset()         { *m = BooleanResponse{} }
+func (m *BooleanResponse) String() string { return proto.CompactTextString(m) }
+func (*BooleanResponse) ProtoMessage()    {}
 
-type SetIdMessage struct {
-	SetId string `protobuf:"bytes,1,opt,name=setId" json:"setId,omitempty"`
+type Status struct {
+	Success   bool   `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
+	ErrorType string `protobuf:"bytes,2,opt,name=errorType" json:"errorType,omitempty"`
 }
 
-func (m *SetIdMessage) Reset()         { *m = SetIdMessage{} }
-func (m *SetIdMessage) String() string { return proto.CompactTextString(m) }
-func (*SetIdMessage) ProtoMessage()    {}
+func (m *Status) Reset()         { *m = Status{} }
+func (m *Status) String() string { return proto.CompactTextString(m) }
+func (*Status) ProtoMessage()    {}
 
-type SetIdPairMessage struct {
-	SetId1 string `protobuf:"bytes,1,opt,name=setId1" json:"setId1,omitempty"`
-	SetId2 string `protobuf:"bytes,2,opt,name=setId2" json:"setId2,omitempty"`
+type TypeMessage struct {
+	Type string `protobuf:"bytes,1,opt,name=type" json:"type,omitempty"`
 }
 
-func (m *SetIdPairMessage) Reset()         { *m = SetIdPairMessage{} }
-func (m *SetIdPairMessage) String() string { return proto.CompactTextString(m) }
-func (*SetIdPairMessage) ProtoMessage()    {}
+func (m *TypeMessage) Reset()         { *m = TypeMessage{} }
+func (m *TypeMessage) String() string { return proto.CompactTextString(m) }
+func (*TypeMessage) ProtoMessage()    {}
 
-type ObjectMessage struct {
-	Object string `protobuf:"bytes,1,opt,name=object" json:"object,omitempty"`
+type ResourceObject struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+	Object      []byte `protobuf:"bytes,2,opt,name=object,proto3" json:"object,omitempty"`
 }
 
-func (m *ObjectMessage) Reset()         { *m = ObjectMessage{} }
-func (m *ObjectMessage) String() string { return proto.CompactTextString(m) }
-func (*ObjectMessage) ProtoMessage()    {}
+func (m *ResourceObject) Reset()         { *m = ResourceObject{} }
+func (m *ResourceObject) String() string { return proto.CompactTextString(m) }
+func (*ResourceObject) ProtoMessage()    {}
 
-type ObjectRequest struct {
-	SetId  string `protobuf:"bytes,1,opt,name=setId" json:"setId,omitempty"`
-	Object string `protobuf:"bytes,2,opt,name=object" json:"object,omitempty"`
+type CreateRequest struct {
+	ResourceType string `protobuf:"bytes,1,opt,name=resourceType" json:"resourceType,omitempty"`
 }
 
-func (m *ObjectRequest) Reset()         { *m = ObjectRequest{} }
-func (m *ObjectRequest) String() string { return proto.CompactTextString(m) }
-func (*ObjectRequest) ProtoMessage()    {}
+func (m *CreateRequest) Reset()         { *m = CreateRequest{} }
+func (m *CreateRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateRequest) ProtoMessage()    {}
 
-type StatusResponse struct {
-	Success bool   `protobuf:"varint,1,opt,name=success" json:"success,omitempty"`
-	Mesg    string `protobuf:"bytes,2,opt,name=mesg" json:"mesg,omitempty"`
+type CreateResponse struct {
+	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	ReferenceId string  `protobuf:"bytes,2,opt,name=referenceId" json:"referenceId,omitempty"`
 }
 
-func (m *StatusResponse) Reset()         { *m = StatusResponse{} }
-func (m *StatusResponse) String() string { return proto.CompactTextString(m) }
-func (*StatusResponse) ProtoMessage()    {}
+func (m *CreateResponse) Reset()         { *m = CreateResponse{} }
+func (m *CreateResponse) String() string { return proto.CompactTextString(m) }
+func (*CreateResponse) ProtoMessage()    {}
+
+func (m *CreateResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type AttachRequest struct {
+	ResourceId  string `protobuf:"bytes,1,opt,name=resourceId" json:"resourceId,omitempty"`
+	ResourceKey string `protobuf:"bytes,2,opt,name=resourceKey" json:"resourceKey,omitempty"`
+}
+
+func (m *AttachRequest) Reset()         { *m = AttachRequest{} }
+func (m *AttachRequest) String() string { return proto.CompactTextString(m) }
+func (*AttachRequest) ProtoMessage()    {}
+
+type AttachResponse struct {
+	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	ReferenceId string  `protobuf:"bytes,2,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *AttachResponse) Reset()         { *m = AttachResponse{} }
+func (m *AttachResponse) String() string { return proto.CompactTextString(m) }
+func (*AttachResponse) ProtoMessage()    {}
+
+func (m *AttachResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type DetachRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *DetachRequest) Reset()         { *m = DetachRequest{} }
+func (m *DetachRequest) String() string { return proto.CompactTextString(m) }
+func (*DetachRequest) ProtoMessage()    {}
+
+type DetachResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *DetachResponse) Reset()         { *m = DetachResponse{} }
+func (m *DetachResponse) String() string { return proto.CompactTextString(m) }
+func (*DetachResponse) ProtoMessage()    {}
+
+func (m *DetachResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SupportedTypesResponse struct {
+	Types []*TypeMessage `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"`
+}
+
+func (m *SupportedTypesResponse) Reset()         { *m = SupportedTypesResponse{} }
+func (m *SupportedTypesResponse) String() string { return proto.CompactTextString(m) }
+func (*SupportedTypesResponse) ProtoMessage()    {}
+
+func (m *SupportedTypesResponse) GetTypes() []*TypeMessage {
+	if m != nil {
+		return m.Types
+	}
+	return nil
+}
+
+type SetListRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *SetListRequest) Reset()         { *m = SetListRequest{} }
+func (m *SetListRequest) String() string { return proto.CompactTextString(m) }
+func (*SetListRequest) ProtoMessage()    {}
+
+type SetInsertRequest struct {
+	Object *ResourceObject `protobuf:"bytes,1,opt,name=object" json:"object,omitempty"`
+}
+
+func (m *SetInsertRequest) Reset()         { *m = SetInsertRequest{} }
+func (m *SetInsertRequest) String() string { return proto.CompactTextString(m) }
+func (*SetInsertRequest) ProtoMessage()    {}
+
+func (m *SetInsertRequest) GetObject() *ResourceObject {
+	if m != nil {
+		return m.Object
+	}
+	return nil
+}
+
+type SetInsertResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *SetInsertResponse) Reset()         { *m = SetInsertResponse{} }
+func (m *SetInsertResponse) String() string { return proto.CompactTextString(m) }
+func (*SetInsertResponse) ProtoMessage()    {}
+
+func (m *SetInsertResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetRemoveRequest struct {
+	Object *ResourceObject `protobuf:"bytes,1,opt,name=object" json:"object,omitempty"`
+}
+
+func (m *SetRemoveRequest) Reset()         { *m = SetRemoveRequest{} }
+func (m *SetRemoveRequest) String() string { return proto.CompactTextString(m) }
+func (*SetRemoveRequest) ProtoMessage()    {}
+
+func (m *SetRemoveRequest) GetObject() *ResourceObject {
+	if m != nil {
+		return m.Object
+	}
+	return nil
+}
+
+type SetRemoveResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *SetRemoveResponse) Reset()         { *m = SetRemoveResponse{} }
+func (m *SetRemoveResponse) String() string { return proto.CompactTextString(m) }
+func (*SetRemoveResponse) ProtoMessage()    {}
+
+func (m *SetRemoveResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetLengthRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *SetLengthRequest) Reset()         { *m = SetLengthRequest{} }
+func (m *SetLengthRequest) String() string { return proto.CompactTextString(m) }
+func (*SetLengthRequest) ProtoMessage()    {}
+
+type SetLengthResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	Length uint64  `protobuf:"varint,2,opt,name=length" json:"length,omitempty"`
+}
+
+func (m *SetLengthResponse) Reset()         { *m = SetLengthResponse{} }
+func (m *SetLengthResponse) String() string { return proto.CompactTextString(m) }
+func (*SetLengthResponse) ProtoMessage()    {}
+
+func (m *SetLengthResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetContainsRequest struct {
+	Object *ResourceObject `protobuf:"bytes,1,opt,name=object" json:"object,omitempty"`
+}
+
+func (m *SetContainsRequest) Reset()         { *m = SetContainsRequest{} }
+func (m *SetContainsRequest) String() string { return proto.CompactTextString(m) }
+func (*SetContainsRequest) ProtoMessage()    {}
+
+func (m *SetContainsRequest) GetObject() *ResourceObject {
+	if m != nil {
+		return m.Object
+	}
+	return nil
+}
+
+type SetContainsResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	Result bool    `protobuf:"varint,2,opt,name=result" json:"result,omitempty"`
+}
+
+func (m *SetContainsResponse) Reset()         { *m = SetContainsResponse{} }
+func (m *SetContainsResponse) String() string { return proto.CompactTextString(m) }
+func (*SetContainsResponse) ProtoMessage()    {}
+
+func (m *SetContainsResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetEqualsRequest struct {
+	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
+}
+
+func (m *SetEqualsRequest) Reset()         { *m = SetEqualsRequest{} }
+func (m *SetEqualsRequest) String() string { return proto.CompactTextString(m) }
+func (*SetEqualsRequest) ProtoMessage()    {}
+
+type SetEqualsResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	Result bool    `protobuf:"varint,2,opt,name=result" json:"result,omitempty"`
+}
+
+func (m *SetEqualsResponse) Reset()         { *m = SetEqualsResponse{} }
+func (m *SetEqualsResponse) String() string { return proto.CompactTextString(m) }
+func (*SetEqualsResponse) ProtoMessage()    {}
+
+func (m *SetEqualsResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetMergeRequest struct {
+	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
+}
+
+func (m *SetMergeRequest) Reset()         { *m = SetMergeRequest{} }
+func (m *SetMergeRequest) String() string { return proto.CompactTextString(m) }
+func (*SetMergeRequest) ProtoMessage()    {}
+
+type SetMergeResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *SetMergeResponse) Reset()         { *m = SetMergeResponse{} }
+func (m *SetMergeResponse) String() string { return proto.CompactTextString(m) }
+func (*SetMergeResponse) ProtoMessage()    {}
+
+func (m *SetMergeResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type SetCloneRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *SetCloneRequest) Reset()         { *m = SetCloneRequest{} }
+func (m *SetCloneRequest) String() string { return proto.CompactTextString(m) }
+func (*SetCloneRequest) ProtoMessage()    {}
+
+type SetCloneResponse struct {
+	Status         *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	NewReferenceId string  `protobuf:"bytes,2,opt,name=newReferenceId" json:"newReferenceId,omitempty"`
+}
+
+func (m *SetCloneResponse) Reset()         { *m = SetCloneResponse{} }
+func (m *SetCloneResponse) String() string { return proto.CompactTextString(m) }
+func (*SetCloneResponse) ProtoMessage()    {}
+
+func (m *SetCloneResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
@@ -98,19 +384,15 @@ var _ grpc.ClientConn
 // Client API for CRDT service
 
 type CRDTClient interface {
-	// Managerial Operations
-	CreateSet(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SetIdMessage, error)
-	DeleteSet(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (*StatusResponse, error)
-	ListSets(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (CRDT_ListSetsClient, error)
-	// Set Operations
-	GetObjects(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (CRDT_GetObjectsClient, error)
-	AddObject(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*StatusResponse, error)
-	RemoveObject(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*StatusResponse, error)
-	Contains(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*BooleanMessage, error)
-	// Set-on-Set Operations
-	Equals(ctx context.Context, in *SetIdPairMessage, opts ...grpc.CallOption) (*BooleanMessage, error)
-	Merge(ctx context.Context, in *SetIdPairMessage, opts ...grpc.CallOption) (*StatusResponse, error)
-	Clone(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (*SetIdMessage, error)
+	// Create a new data set in internal datastore.
+	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
+	// Attach to an existing data set.
+	Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error)
+	// Detach ReferenceId reference from internal datastore.
+	Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error)
+	// Returns a list of supported data types.
+	SupportedTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedTypesResponse, error)
+	IsSupportedType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
 }
 
 type cRDTClient struct {
@@ -121,136 +403,45 @@ func NewCRDTClient(cc *grpc.ClientConn) CRDTClient {
 	return &cRDTClient{cc}
 }
 
-func (c *cRDTClient) CreateSet(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SetIdMessage, error) {
-	out := new(SetIdMessage)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/CreateSet", in, out, c.cc, opts...)
+func (c *cRDTClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
+	out := new(CreateResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Create", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cRDTClient) DeleteSet(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/DeleteSet", in, out, c.cc, opts...)
+func (c *cRDTClient) Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error) {
+	out := new(AttachResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Attach", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cRDTClient) ListSets(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (CRDT_ListSetsClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_CRDT_serviceDesc.Streams[0], c.cc, "/crdt.CRDT/ListSets", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &cRDTListSetsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type CRDT_ListSetsClient interface {
-	Recv() (*SetIdMessage, error)
-	grpc.ClientStream
-}
-
-type cRDTListSetsClient struct {
-	grpc.ClientStream
-}
-
-func (x *cRDTListSetsClient) Recv() (*SetIdMessage, error) {
-	m := new(SetIdMessage)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *cRDTClient) GetObjects(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (CRDT_GetObjectsClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_CRDT_serviceDesc.Streams[1], c.cc, "/crdt.CRDT/GetObjects", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &cRDTGetObjectsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type CRDT_GetObjectsClient interface {
-	Recv() (*ObjectMessage, error)
-	grpc.ClientStream
-}
-
-type cRDTGetObjectsClient struct {
-	grpc.ClientStream
-}
-
-func (x *cRDTGetObjectsClient) Recv() (*ObjectMessage, error) {
-	m := new(ObjectMessage)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *cRDTClient) AddObject(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/AddObject", in, out, c.cc, opts...)
+func (c *cRDTClient) Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error) {
+	out := new(DetachResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Detach", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cRDTClient) RemoveObject(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/RemoveObject", in, out, c.cc, opts...)
+func (c *cRDTClient) SupportedTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedTypesResponse, error) {
+	out := new(SupportedTypesResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/SupportedTypes", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cRDTClient) Contains(ctx context.Context, in *ObjectRequest, opts ...grpc.CallOption) (*BooleanMessage, error) {
-	out := new(BooleanMessage)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/Contains", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cRDTClient) Equals(ctx context.Context, in *SetIdPairMessage, opts ...grpc.CallOption) (*BooleanMessage, error) {
-	out := new(BooleanMessage)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/Equals", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cRDTClient) Merge(ctx context.Context, in *SetIdPairMessage, opts ...grpc.CallOption) (*StatusResponse, error) {
-	out := new(StatusResponse)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/Merge", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *cRDTClient) Clone(ctx context.Context, in *SetIdMessage, opts ...grpc.CallOption) (*SetIdMessage, error) {
-	out := new(SetIdMessage)
-	err := grpc.Invoke(ctx, "/crdt.CRDT/Clone", in, out, c.cc, opts...)
+func (c *cRDTClient) IsSupportedType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error) {
+	out := new(BooleanResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/IsSupportedType", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -260,157 +451,75 @@ func (c *cRDTClient) Clone(ctx context.Context, in *SetIdMessage, opts ...grpc.C
 // Server API for CRDT service
 
 type CRDTServer interface {
-	// Managerial Operations
-	CreateSet(context.Context, *EmptyMessage) (*SetIdMessage, error)
-	DeleteSet(context.Context, *SetIdMessage) (*StatusResponse, error)
-	ListSets(*EmptyMessage, CRDT_ListSetsServer) error
-	// Set Operations
-	GetObjects(*SetIdMessage, CRDT_GetObjectsServer) error
-	AddObject(context.Context, *ObjectRequest) (*StatusResponse, error)
-	RemoveObject(context.Context, *ObjectRequest) (*StatusResponse, error)
-	Contains(context.Context, *ObjectRequest) (*BooleanMessage, error)
-	// Set-on-Set Operations
-	Equals(context.Context, *SetIdPairMessage) (*BooleanMessage, error)
-	Merge(context.Context, *SetIdPairMessage) (*StatusResponse, error)
-	Clone(context.Context, *SetIdMessage) (*SetIdMessage, error)
+	// Create a new data set in internal datastore.
+	Create(context.Context, *CreateRequest) (*CreateResponse, error)
+	// Attach to an existing data set.
+	Attach(context.Context, *AttachRequest) (*AttachResponse, error)
+	// Detach ReferenceId reference from internal datastore.
+	Detach(context.Context, *DetachRequest) (*DetachResponse, error)
+	// Returns a list of supported data types.
+	SupportedTypes(context.Context, *EmptyMessage) (*SupportedTypesResponse, error)
+	IsSupportedType(context.Context, *TypeMessage) (*BooleanResponse, error)
 }
 
 func RegisterCRDTServer(s *grpc.Server, srv CRDTServer) {
 	s.RegisterService(&_CRDT_serviceDesc, srv)
 }
 
-func _CRDT_CreateSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+func _CRDT_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(CreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Create(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Attach_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(AttachRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Attach(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Detach_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(DetachRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Detach(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_SupportedTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(EmptyMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
-	out, err := srv.(CRDTServer).CreateSet(ctx, in)
+	out, err := srv.(CRDTServer).SupportedTypes(ctx, in)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func _CRDT_DeleteSet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetIdMessage)
+func _CRDT_IsSupportedType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(TypeMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
-	out, err := srv.(CRDTServer).DeleteSet(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_ListSets_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(EmptyMessage)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(CRDTServer).ListSets(m, &cRDTListSetsServer{stream})
-}
-
-type CRDT_ListSetsServer interface {
-	Send(*SetIdMessage) error
-	grpc.ServerStream
-}
-
-type cRDTListSetsServer struct {
-	grpc.ServerStream
-}
-
-func (x *cRDTListSetsServer) Send(m *SetIdMessage) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _CRDT_GetObjects_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SetIdMessage)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(CRDTServer).GetObjects(m, &cRDTGetObjectsServer{stream})
-}
-
-type CRDT_GetObjectsServer interface {
-	Send(*ObjectMessage) error
-	grpc.ServerStream
-}
-
-type cRDTGetObjectsServer struct {
-	grpc.ServerStream
-}
-
-func (x *cRDTGetObjectsServer) Send(m *ObjectMessage) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _CRDT_AddObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(ObjectRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).AddObject(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_RemoveObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(ObjectRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).RemoveObject(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_Contains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(ObjectRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).Contains(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetIdPairMessage)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).Equals(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetIdPairMessage)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).Merge(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _CRDT_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetIdMessage)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(CRDTServer).Clone(ctx, in)
+	out, err := srv.(CRDTServer).IsSupportedType(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -422,47 +531,557 @@ var _CRDT_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*CRDTServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateSet",
-			Handler:    _CRDT_CreateSet_Handler,
+			MethodName: "Create",
+			Handler:    _CRDT_Create_Handler,
 		},
 		{
-			MethodName: "DeleteSet",
-			Handler:    _CRDT_DeleteSet_Handler,
+			MethodName: "Attach",
+			Handler:    _CRDT_Attach_Handler,
 		},
 		{
-			MethodName: "AddObject",
-			Handler:    _CRDT_AddObject_Handler,
+			MethodName: "Detach",
+			Handler:    _CRDT_Detach_Handler,
 		},
 		{
-			MethodName: "RemoveObject",
-			Handler:    _CRDT_RemoveObject_Handler,
+			MethodName: "SupportedTypes",
+			Handler:    _CRDT_SupportedTypes_Handler,
+		},
+		{
+			MethodName: "IsSupportedType",
+			Handler:    _CRDT_IsSupportedType_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{},
+}
+
+// Client API for GrowOnlySet service
+
+type GrowOnlySetClient interface {
+	List(ctx context.Context, in *SetListRequest, opts ...grpc.CallOption) (GrowOnlySet_ListClient, error)
+	Insert(ctx context.Context, in *SetInsertRequest, opts ...grpc.CallOption) (*SetInsertResponse, error)
+	Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error)
+	Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error)
+	Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error)
+	Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error)
+	Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error)
+}
+
+type growOnlySetClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewGrowOnlySetClient(cc *grpc.ClientConn) GrowOnlySetClient {
+	return &growOnlySetClient{cc}
+}
+
+func (c *growOnlySetClient) List(ctx context.Context, in *SetListRequest, opts ...grpc.CallOption) (GrowOnlySet_ListClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_GrowOnlySet_serviceDesc.Streams[0], c.cc, "/crdt.GrowOnlySet/List", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &growOnlySetListClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type GrowOnlySet_ListClient interface {
+	Recv() (*ResourceObject, error)
+	grpc.ClientStream
+}
+
+type growOnlySetListClient struct {
+	grpc.ClientStream
+}
+
+func (x *growOnlySetListClient) Recv() (*ResourceObject, error) {
+	m := new(ResourceObject)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *growOnlySetClient) Insert(ctx context.Context, in *SetInsertRequest, opts ...grpc.CallOption) (*SetInsertResponse, error) {
+	out := new(SetInsertResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Insert", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *growOnlySetClient) Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error) {
+	out := new(SetLengthResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Length", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *growOnlySetClient) Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error) {
+	out := new(SetContainsResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Contains", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *growOnlySetClient) Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error) {
+	out := new(SetEqualsResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Equals", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *growOnlySetClient) Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error) {
+	out := new(SetMergeResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Merge", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *growOnlySetClient) Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error) {
+	out := new(SetCloneResponse)
+	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Clone", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for GrowOnlySet service
+
+type GrowOnlySetServer interface {
+	List(*SetListRequest, GrowOnlySet_ListServer) error
+	Insert(context.Context, *SetInsertRequest) (*SetInsertResponse, error)
+	Length(context.Context, *SetLengthRequest) (*SetLengthResponse, error)
+	Contains(context.Context, *SetContainsRequest) (*SetContainsResponse, error)
+	Equals(context.Context, *SetEqualsRequest) (*SetEqualsResponse, error)
+	Merge(context.Context, *SetMergeRequest) (*SetMergeResponse, error)
+	Clone(context.Context, *SetCloneRequest) (*SetCloneResponse, error)
+}
+
+func RegisterGrowOnlySetServer(s *grpc.Server, srv GrowOnlySetServer) {
+	s.RegisterService(&_GrowOnlySet_serviceDesc, srv)
+}
+
+func _GrowOnlySet_List_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SetListRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GrowOnlySetServer).List(m, &growOnlySetListServer{stream})
+}
+
+type GrowOnlySet_ListServer interface {
+	Send(*ResourceObject) error
+	grpc.ServerStream
+}
+
+type growOnlySetListServer struct {
+	grpc.ServerStream
+}
+
+func (x *growOnlySetListServer) Send(m *ResourceObject) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _GrowOnlySet_Insert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetInsertRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Insert(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _GrowOnlySet_Length_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetLengthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Length(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _GrowOnlySet_Contains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetContainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Contains(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _GrowOnlySet_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetEqualsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Equals(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _GrowOnlySet_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetMergeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Merge(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _GrowOnlySet_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetCloneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(GrowOnlySetServer).Clone(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+var _GrowOnlySet_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "crdt.GrowOnlySet",
+	HandlerType: (*GrowOnlySetServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Insert",
+			Handler:    _GrowOnlySet_Insert_Handler,
+		},
+		{
+			MethodName: "Length",
+			Handler:    _GrowOnlySet_Length_Handler,
 		},
 		{
 			MethodName: "Contains",
-			Handler:    _CRDT_Contains_Handler,
+			Handler:    _GrowOnlySet_Contains_Handler,
 		},
 		{
 			MethodName: "Equals",
-			Handler:    _CRDT_Equals_Handler,
+			Handler:    _GrowOnlySet_Equals_Handler,
 		},
 		{
 			MethodName: "Merge",
-			Handler:    _CRDT_Merge_Handler,
+			Handler:    _GrowOnlySet_Merge_Handler,
 		},
 		{
 			MethodName: "Clone",
-			Handler:    _CRDT_Clone_Handler,
+			Handler:    _GrowOnlySet_Clone_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ListSets",
-			Handler:       _CRDT_ListSets_Handler,
+			StreamName:    "List",
+			Handler:       _GrowOnlySet_List_Handler,
 			ServerStreams: true,
 		},
+	},
+}
+
+// Client API for TwoPhaseSet service
+
+type TwoPhaseSetClient interface {
+	List(ctx context.Context, in *SetListRequest, opts ...grpc.CallOption) (TwoPhaseSet_ListClient, error)
+	Insert(ctx context.Context, in *SetInsertRequest, opts ...grpc.CallOption) (*SetInsertResponse, error)
+	Remove(ctx context.Context, in *SetRemoveRequest, opts ...grpc.CallOption) (*SetRemoveResponse, error)
+	Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error)
+	Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error)
+	Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error)
+	Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error)
+	Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error)
+}
+
+type twoPhaseSetClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewTwoPhaseSetClient(cc *grpc.ClientConn) TwoPhaseSetClient {
+	return &twoPhaseSetClient{cc}
+}
+
+func (c *twoPhaseSetClient) List(ctx context.Context, in *SetListRequest, opts ...grpc.CallOption) (TwoPhaseSet_ListClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_TwoPhaseSet_serviceDesc.Streams[0], c.cc, "/crdt.TwoPhaseSet/List", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &twoPhaseSetListClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type TwoPhaseSet_ListClient interface {
+	Recv() (*ResourceObject, error)
+	grpc.ClientStream
+}
+
+type twoPhaseSetListClient struct {
+	grpc.ClientStream
+}
+
+func (x *twoPhaseSetListClient) Recv() (*ResourceObject, error) {
+	m := new(ResourceObject)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *twoPhaseSetClient) Insert(ctx context.Context, in *SetInsertRequest, opts ...grpc.CallOption) (*SetInsertResponse, error) {
+	out := new(SetInsertResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Insert", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Remove(ctx context.Context, in *SetRemoveRequest, opts ...grpc.CallOption) (*SetRemoveResponse, error) {
+	out := new(SetRemoveResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Remove", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error) {
+	out := new(SetLengthResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Length", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error) {
+	out := new(SetContainsResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Contains", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error) {
+	out := new(SetEqualsResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Equals", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error) {
+	out := new(SetMergeResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Merge", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *twoPhaseSetClient) Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error) {
+	out := new(SetCloneResponse)
+	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Clone", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for TwoPhaseSet service
+
+type TwoPhaseSetServer interface {
+	List(*SetListRequest, TwoPhaseSet_ListServer) error
+	Insert(context.Context, *SetInsertRequest) (*SetInsertResponse, error)
+	Remove(context.Context, *SetRemoveRequest) (*SetRemoveResponse, error)
+	Length(context.Context, *SetLengthRequest) (*SetLengthResponse, error)
+	Contains(context.Context, *SetContainsRequest) (*SetContainsResponse, error)
+	Equals(context.Context, *SetEqualsRequest) (*SetEqualsResponse, error)
+	Merge(context.Context, *SetMergeRequest) (*SetMergeResponse, error)
+	Clone(context.Context, *SetCloneRequest) (*SetCloneResponse, error)
+}
+
+func RegisterTwoPhaseSetServer(s *grpc.Server, srv TwoPhaseSetServer) {
+	s.RegisterService(&_TwoPhaseSet_serviceDesc, srv)
+}
+
+func _TwoPhaseSet_List_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SetListRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TwoPhaseSetServer).List(m, &twoPhaseSetListServer{stream})
+}
+
+type TwoPhaseSet_ListServer interface {
+	Send(*ResourceObject) error
+	grpc.ServerStream
+}
+
+type twoPhaseSetListServer struct {
+	grpc.ServerStream
+}
+
+func (x *twoPhaseSetListServer) Send(m *ResourceObject) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _TwoPhaseSet_Insert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetInsertRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Insert(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Remove(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Length_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetLengthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Length(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Contains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetContainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Contains(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetEqualsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Equals(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetMergeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Merge(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _TwoPhaseSet_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(SetCloneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(TwoPhaseSetServer).Clone(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+var _TwoPhaseSet_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "crdt.TwoPhaseSet",
+	HandlerType: (*TwoPhaseSetServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "GetObjects",
-			Handler:       _CRDT_GetObjects_Handler,
+			MethodName: "Insert",
+			Handler:    _TwoPhaseSet_Insert_Handler,
+		},
+		{
+			MethodName: "Remove",
+			Handler:    _TwoPhaseSet_Remove_Handler,
+		},
+		{
+			MethodName: "Length",
+			Handler:    _TwoPhaseSet_Length_Handler,
+		},
+		{
+			MethodName: "Contains",
+			Handler:    _TwoPhaseSet_Contains_Handler,
+		},
+		{
+			MethodName: "Equals",
+			Handler:    _TwoPhaseSet_Equals_Handler,
+		},
+		{
+			MethodName: "Merge",
+			Handler:    _TwoPhaseSet_Merge_Handler,
+		},
+		{
+			MethodName: "Clone",
+			Handler:    _TwoPhaseSet_Clone_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "List",
+			Handler:       _TwoPhaseSet_List_Handler,
 			ServerStreams: true,
 		},
 	},
