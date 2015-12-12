@@ -104,7 +104,8 @@ func (*CreateRequest) ProtoMessage()    {}
 
 type CreateResponse struct {
 	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	ReferenceId string  `protobuf:"bytes,2,opt,name=referenceId" json:"referenceId,omitempty"`
+	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
+	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
 }
 
 func (m *CreateResponse) Reset()         { *m = CreateResponse{} }
@@ -362,8 +363,8 @@ func (m *SetCloneRequest) String() string { return proto.CompactTextString(m) }
 func (*SetCloneRequest) ProtoMessage()    {}
 
 type SetCloneResponse struct {
-	Status         *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	NewReferenceId string  `protobuf:"bytes,2,opt,name=newReferenceId" json:"newReferenceId,omitempty"`
+	Status     *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	ResourceId string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
 }
 
 func (m *SetCloneResponse) Reset()         { *m = SetCloneResponse{} }

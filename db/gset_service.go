@@ -1,6 +1,8 @@
 package crdb
 
 import (
+    "encoding/base64"
+
     "fmt"
 
     "github.com/tswindell/go-crdt/sets"
@@ -82,9 +84,12 @@ func (d *GSetResourceFactory) List(m *pb.SetListRequest, stream pb.GrowOnlySet_L
     if e != nil { return nil }
 
     for v := range gset.Iterate() {
+        j, e := base64.StdEncoding.DecodeString(v.(string))
+        if e != nil { return nil }
+
         stream.Send(&pb.ResourceObject{
                         ReferenceId: string(m.ReferenceId),
-                        Object: v.([]byte),
+                        Object: []byte(j),
                     })
     }
 
@@ -101,7 +106,7 @@ func (d *GSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsertRequest
         status.ErrorType = e.Error()
     }
 
-    if !gset.Insert(m.Object.Object) {
+    if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_PRESENT.Error()
     }

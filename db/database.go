@@ -72,9 +72,9 @@ func (d *Database) RegisterType(factory ResourceFactory) {
 }
 
 // The Create() database method creates a new resource from the specified parameters.
-func (d *Database) Create(resourceType ResourceType) (ReferenceId, error) {
+func (d *Database) Create(resourceType ResourceType) (ResourceId, ResourceKey, error) {
     factory, ok := d.datatypes[resourceType]
-    if !ok { return ReferenceId(""), E_UNKNOWN_TYPE }
+    if !ok { return ResourceId(""), ResourceKey(""), E_UNKNOWN_TYPE }
 
     resourceId  := ResourceId(GenerateUUID())
     resourceKey := ResourceKey(GenerateRandomKey())
@@ -82,7 +82,7 @@ func (d *Database) Create(resourceType ResourceType) (ReferenceId, error) {
     resource := factory.Create(resourceId, resourceKey)
     d.datastore[resourceId] = resource
 
-    return d.Attach(resourceId, resourceKey)
+    return resourceId, resourceKey, nil
 }
 
 // The Attach() database method obtains a reference to a resource in the database.

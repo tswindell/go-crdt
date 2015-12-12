@@ -71,7 +71,7 @@ func __hostport_from_listener(listener *net.Listener) (string, int, error) {
 func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateResponse, error) {
     status := &pb.Status{Success: true}
 
-    referenceId, e := d.database.Create(ResourceType(m.ResourceType))
+    resourceId, resourceKey, e := d.database.Create(ResourceType(m.ResourceType))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
@@ -80,7 +80,8 @@ func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateRes
     LogInfo("CreateResponse: success=%v error=%s", status.Success, status.ErrorType)
     return &pb.CreateResponse{
                Status: status,
-               ReferenceId: string(referenceId),
+               ResourceId: string(resourceId),
+               ResourceKey: string(resourceKey),
            }, nil
 }
 

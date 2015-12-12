@@ -48,7 +48,8 @@ message CreateRequest {
 
 message CreateResponse {
     Status status      = 1;
-    string referenceId = 2; // Client specific pointer to dataset.
+    string resourceId  = 2;
+    string resourceKey = 3;
 }
 
 message AttachRequest {
@@ -160,6 +161,6 @@ message SetCloneRequest {
 
 message SetCloneResponse {
     Status status = 1;
-    string newReferenceId = 2;
+    string resourceId = 2; // New ResourceId
 }
 
