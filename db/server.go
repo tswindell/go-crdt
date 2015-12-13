@@ -109,7 +109,7 @@ func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateRes
     return &pb.CreateResponse{
                Status: status,
                ResourceId: string(resourceId),
-               ResourceKey: string(resourceKey),
+               ResourceKey: []byte(resourceKey),
            }, nil
 }
 

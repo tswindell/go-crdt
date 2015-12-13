@@ -69,6 +69,14 @@ func (d *TwoPhaseSetResource) Type() ResourceType {
     return TWOPHASESET_RESOURCE_TYPE
 }
 
+func (d *TwoPhaseSetResource) Save() []byte {
+    return nil
+}
+
+func (d *TwoPhaseSetResource) Load(data []byte) error {
+    return nil
+}
+
 type TwoPhaseSetResourceFactory struct {
     database  *Database
     resources  map[ResourceId]*TwoPhaseSetResource
@@ -256,7 +264,7 @@ func (d *TwoPhaseSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRe
     return &pb.SetCloneResponse{
                Status: &pb.Status{Success: true},
                ResourceId: string(resourceId),
-               ResourceKey: string(resourceKey),
+               ResourceKey: []byte(resourceKey),
            }, nil
 }
 

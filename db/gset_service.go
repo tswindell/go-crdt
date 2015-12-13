@@ -69,6 +69,14 @@ func (d *GSetResource) Type() ResourceType {
     return GSET_RESOURCE_TYPE
 }
 
+func (d *GSetResource) Save() []byte {
+    return make([]byte, 0)
+}
+
+func (d *GSetResource) Load(data []byte) error {
+    return nil
+}
+
 type GSetResourceFactory struct {
     database  *Database
     resources  map[ResourceId]*GSetResource
@@ -238,7 +246,7 @@ func (d *GSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRequest) 
     return &pb.SetCloneResponse{
                Status: &pb.Status{Success: true},
                ResourceId: string(resourceId),
-               ResourceKey: string(resourceKey),
+               ResourceKey: []byte(resourceKey),
            }, nil
 }
 

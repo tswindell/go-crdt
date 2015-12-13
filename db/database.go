@@ -24,6 +24,8 @@
 package crdb
 
 import (
+    "bytes"
+
     "crypto/rand"
     "crypto/sha256"
     "encoding/hex"
@@ -46,7 +48,7 @@ type ResourceId string
 type ReferenceId string
 
 // The ResourceKey type is the representation of a resources' encryption key.
-type ResourceKey string
+type ResourceKey []byte
 
 // The ResourceType type is the representation of a resources' data type.
 type ResourceType string
@@ -56,12 +58,16 @@ type Resource interface {
     Id() ResourceId
     Key() ResourceKey
     Type() ResourceType
+
+    Save() []byte
+    Load([]byte) error
 }
 
 // The ResourceFactory interface defines the API that a resource type must
 // provide.
 type ResourceFactory interface {
     Type() ResourceType
+
     Create(ResourceId, ResourceKey) Resource
 }
 
@@ -113,7 +119,7 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
     resource, ok := d.datastore[resourceId]
     if !ok { return ReferenceId(""), E_UNKNOWN_RESOURCE }
 
-    if resource.Key() != resourceKey { return ReferenceId(""), E_INVALID_KEY }
+    if !bytes.Equal(resource.Key(), resourceKey) { return ReferenceId(""), E_INVALID_KEY }
 
     referenceId := ReferenceId(GenerateUUID())
     d.references[referenceId] = resource

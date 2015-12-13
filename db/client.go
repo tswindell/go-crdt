@@ -88,7 +88,7 @@ func (d *Client) Attach(resourceId ResourceId, resourceKey ResourceKey) (Referen
     r, e := d.CRDTClient.Attach(context.Background(),
                                 &pb.AttachRequest{
                                     ResourceId: string(resourceId),
-                                    ResourceKey: string(resourceKey),
+                                    ResourceKey: []byte(resourceKey),
                                 })
     if e != nil { return ReferenceId(""), e }
 
