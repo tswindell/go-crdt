@@ -135,9 +135,7 @@ func (d *TwoPhaseSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsert
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    }
-
-    if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_PRESENT.Error()
     }
@@ -153,9 +151,7 @@ func (d *TwoPhaseSetResourceFactory) Remove(ctx context.Context, m *pb.SetRemove
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    }
-
-    if !gset.Remove(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !gset.Remove(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_REMOVED.Error()
     }

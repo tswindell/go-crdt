@@ -135,9 +135,7 @@ func (d *GSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsertRequest
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    }
-
-    if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_PRESENT.Error()
     }
