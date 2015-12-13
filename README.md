@@ -42,7 +42,7 @@ CRDT Supported Types:
 
 Creating a new resource:
 ```
-  $ crdb-tool create crdt:gset
+  $ crdb-tool create crdt:gset tmpfs aes-256-cbc
 ```
 
 Attaching to resource, using *Id* and *Key* returned from *create*:

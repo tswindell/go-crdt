@@ -69,11 +69,11 @@ func (d *GSetResource) Type() ResourceType {
     return GSET_RESOURCE_TYPE
 }
 
-func (d *GSetResource) Save() []byte {
+func (d *GSetResource) Serialize() []byte {
     return make([]byte, 0)
 }
 
-func (d *GSetResource) Load(data []byte) error {
+func (d *GSetResource) Deserialize(data []byte) error {
     return nil
 }
 
@@ -99,22 +99,22 @@ func (d *GSetResourceFactory) Create(resourceId ResourceId, resourceKey Resource
     return resource
 }
 
-func (d *GSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*set.GSet, error) {
+func (d *GSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*GSetResource, error) {
     resourceId, e := d.database.Resolve(referenceId)
     if e != nil { return nil, e }
 
     resource, ok := d.resources[resourceId]
     if !ok { return nil, E_UNKNOWN_RESOURCE }
 
-    return &resource.object, nil
+    return resource, nil
 }
 
 // The List() service method
 func (d *GSetResourceFactory) List(m *pb.SetListRequest, stream pb.GrowOnlySet_ListServer) error {
-    gset, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil { return nil }
 
-    for v := range gset.Iterate() {
+    for v := range resource.object.Iterate() {
         j, e := base64.StdEncoding.DecodeString(v.(string))
         if e != nil { return nil }
 
@@ -131,11 +131,11 @@ func (d *GSetResourceFactory) List(m *pb.SetListRequest, stream pb.GrowOnlySet_L
 func (d *GSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsertRequest) (*pb.SetInsertResponse, error) {
     status := &pb.Status{Success: true}
 
-    gset, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    } else if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !resource.object.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_PRESENT.Error()
     }
@@ -148,13 +148,13 @@ func (d *GSetResourceFactory) Length(ctx context.Context, m *pb.SetLengthRequest
     status := &pb.Status{Success: true}
     length := 0
 
-    gset, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
 
     } else {
-        length = gset.Length()
+        length = resource.object.Length()
     }
 
     return &pb.SetLengthResponse{Status: status, Length: uint64(length)}, nil
@@ -165,12 +165,12 @@ func (d *GSetResourceFactory) Contains(ctx context.Context, m *pb.SetContainsReq
     status := &pb.Status{Success: true}
     result := false
 
-    gset, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
     } else {
-        result = gset.Contains(base64.StdEncoding.EncodeToString(m.Object.Object))
+        result = resource.object.Contains(base64.StdEncoding.EncodeToString(m.Object.Object))
     }
 
     return &pb.SetContainsResponse{Status: status, Result: result}, nil
@@ -195,7 +195,7 @@ func (d *GSetResourceFactory) Equals(ctx context.Context, m *pb.SetEqualsRequest
 
     return &pb.SetEqualsResponse{
                Status: &pb.Status{Success: true},
-               Result: setA.Equals(*setB),
+               Result: setA.object.Equals(setB.object),
            }, nil
 }
 
@@ -215,7 +215,7 @@ func (d *GSetResourceFactory) Merge(ctx context.Context, m *pb.SetMergeRequest) 
                }, nil
     }
 
-    setA.Merge(*setB)
+    setA.object.Merge(setB.object)
 
     return &pb.SetMergeResponse{
                Status: &pb.Status{Success: true},
@@ -224,27 +224,30 @@ func (d *GSetResourceFactory) Merge(ctx context.Context, m *pb.SetMergeRequest) 
 
 // The Clone() service method
 func (d *GSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRequest) (*pb.SetCloneResponse, error) {
-    set, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
 
-    resourceId, resourceKey, e := d.database.Create(d.Type())
+    cryptoId  := resource.Key().TypeId()
+    storageId := resource.Id().GetStorageId()
+
+    newResourceId, newResourceKey, e := d.database.Create(d.Type(), cryptoId, storageId)
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
 
-    resource, _ := d.resources[resourceId]
-    resource.object = set.Clone()
+    newResource, _ := d.resources[newResourceId]
+    newResource.object = resource.object.Clone()
 
     return &pb.SetCloneResponse{
                Status: &pb.Status{Success: true},
-               ResourceId: string(resourceId),
-               ResourceKey: []byte(resourceKey),
+               ResourceId: string(newResourceId),
+               ResourceKey: string(newResourceKey),
            }, nil
 }
 

@@ -53,6 +53,16 @@ func NewServer() *Server {
     d.service = grpc.NewServer()
     d.database = NewDatabase()
 
+    // Register cryptographic methods.
+    aes128cbc, _ := NewAESCryptoMethod(16)
+    d.database.RegisterCryptoMethod(aes128cbc)
+
+    aes192cbc, _ := NewAESCryptoMethod(24)
+    d.database.RegisterCryptoMethod(aes192cbc)
+
+    aes256cbc, _ := NewAESCryptoMethod(32)
+    d.database.RegisterCryptoMethod(aes256cbc)
+
     // Register resource data types.
     tGSet := NewGSetResourceFactory(d.database)
     d.database.RegisterType(tGSet)
@@ -99,7 +109,9 @@ func __hostport_from_listener(listener *net.Listener) (string, int, error) {
 func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateResponse, error) {
     status := &pb.Status{Success: true}
 
-    resourceId, resourceKey, e := d.database.Create(ResourceType(m.ResourceType))
+    resourceId, resourceKey, e := d.database.Create(ResourceType(m.ResourceType),
+                                                    m.StorageId,
+                                                    m.CryptoId)
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
@@ -109,7 +121,7 @@ func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateRes
     return &pb.CreateResponse{
                Status: status,
                ResourceId: string(resourceId),
-               ResourceKey: []byte(resourceKey),
+               ResourceKey: string(resourceKey),
            }, nil
 }
 
@@ -160,5 +172,33 @@ func (d *Server) SupportedTypes(ctx context.Context, m *pb.EmptyMessage) (*pb.Su
 // The IsSupportedType() server method
 func (d *Server) IsSupportedType(ctx context.Context, m *pb.TypeMessage) (*pb.BooleanResponse, error) {
     return &pb.BooleanResponse{Value: d.database.IsSupportedType(ResourceType(m.Type))}, nil
+}
+
+// The SupportedStorageTypes() server method
+func (d *Server) SupportedStorageTypes(ctx context.Context, m *pb.EmptyMessage) (*pb.SupportedStorageTypesResponse, error) {
+    response := &pb.SupportedStorageTypesResponse{Types: make([]*pb.TypeMessage, 0)}
+    for _, v := range d.database.SupportedStorageTypes() {
+        response.Types = append(response.Types, &pb.TypeMessage{Type: v})
+    }
+    return response, nil
+}
+
+// The IsSupportedStorageType() server method
+func (d *Server) IsSupportedStorageType(ctx context.Context, m *pb.TypeMessage) (*pb.BooleanResponse, error) {
+    return &pb.BooleanResponse{Value: d.database.IsSupportedStorageType(m.Type)}, nil
+}
+
+// The SupportedCryptoMethods() server method
+func (d *Server) SupportedCryptoMethods(ctx context.Context, m *pb.EmptyMessage) (*pb.SupportedCryptoMethodsResponse, error) {
+    response := &pb.SupportedCryptoMethodsResponse{Types: make([]*pb.TypeMessage, 0)}
+    for _, v := range d.database.SupportedCryptoMethods() {
+        response.Types = append(response.Types, &pb.TypeMessage{Type: v})
+    }
+    return response, nil
+}
+
+// The IsSupportedCryptoMethod() server method
+func (d *Server) IsSupportedCryptoMethod(ctx context.Context, m *pb.TypeMessage) (*pb.BooleanResponse, error) {
+    return &pb.BooleanResponse{Value: d.database.IsSupportedCryptoMethod(m.Type)}, nil
 }
 

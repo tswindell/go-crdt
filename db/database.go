@@ -24,31 +24,51 @@
 package crdb
 
 import (
-    "bytes"
-
-    "crypto/rand"
-    "crypto/sha256"
-    "encoding/hex"
+    "encoding/base64"
     "fmt"
+    "strings"
 
-    "code.google.com/p/go-uuid/uuid" 
+    "code.google.com/p/go-uuid/uuid"
 )
 
 var (
-    E_UNKNOWN_TYPE      = fmt.Errorf("crdt:unknown-resource-type")
-    E_UNKNOWN_RESOURCE  = fmt.Errorf("crdt:unknown-resource-id")
-    E_INVALID_KEY       = fmt.Errorf("crdt:invalid-resource-key")
-    E_INVALID_REFERENCE = fmt.Errorf("crdt:invalid-reference")
+    E_UNKNOWN_TYPE          = fmt.Errorf("crdt:unknown-resource-type")
+    E_UNKNOWN_RESOURCE      = fmt.Errorf("crdt:unknown-resource-id")
+    E_INVALID_KEY           = fmt.Errorf("crdt:invalid-resource-key")
+    E_INVALID_REFERENCE     = fmt.Errorf("crdt:invalid-reference")
+    E_INVALID_CRYPTO        = fmt.Errorf("crdt:invalid-crypto-id")
+    E_INVALID_STORAGE       = fmt.Errorf("crdt:invalid-storage-id")
+    E_INVALID_RESOURCE_DATA = fmt.Errorf("crdt:invalid-resource-data")
 )
 
 // The ResourceId type is the representation of a resources' identifier.
 type ResourceId string
 
+func (d ResourceId) GetStorageId() string {
+    return strings.SplitN(string(d), ":", 2)[0]
+}
+
 // The ReferenceId type is the representation of a reference to a resource.
 type ReferenceId string
 
 // The ResourceKey type is the representation of a resources' encryption key.
-type ResourceKey []byte
+type ResourceKey string
+
+// Create a new ResourceKey instance
+func NewResourceKey(typeId string, data []byte) ResourceKey {
+    return ResourceKey(typeId + ":" + base64.StdEncoding.EncodeToString(data))
+}
+
+// Get the cryptographic method type id from key.
+func (d ResourceKey) TypeId() string {
+    return strings.SplitN(string(d), ":", 2)[0]
+}
+
+// Get the raw key data from key.
+func (d ResourceKey) KeyData() []byte {
+    keydata, _ := base64.StdEncoding.DecodeString(strings.SplitN(string(d), ":", 2)[1])
+    return keydata
+}
 
 // The ResourceType type is the representation of a resources' data type.
 type ResourceType string
@@ -59,8 +79,9 @@ type Resource interface {
     Key() ResourceKey
     Type() ResourceType
 
-    Save() []byte
-    Load([]byte) error
+    Serialize() []byte
+
+    Deserialize([]byte) error
 }
 
 // The ResourceFactory interface defines the API that a resource type must
@@ -80,11 +101,37 @@ type ResourceTypeRegistry map[ResourceType]ResourceFactory
 // The ReferenceTable type
 type ReferenceTable map[ReferenceId]Resource
 
+// The Datastore interface type defines the interface that persistent backing
+// stores must implement.
+type Datastore interface {
+    Type() string
+
+    HasResource(ResourceId) bool
+
+    GetResourceData(ResourceId) ([]byte, error)
+
+    SetResourceData(ResourceId, []byte) error
+}
+
+// The CryptoMethod interface type defines the interface that crypto methods
+// must implement.
+type CryptoMethod interface {
+    Type() string
+
+    GenerateKey() ResourceKey
+
+    Encrypt(ResourceKey, []byte) ([]byte, error)
+    Decrypt(ResourceKey, []byte) ([]byte, error)
+}
+
 // The Database type
 type Database struct {
     datatypes  ResourceTypeRegistry
     datastore  ResourceDatastore
     references ReferenceTable
+
+    crypto     map[string]CryptoMethod
+    stores     map[string]Datastore
 }
 
 // The NewDatabase() function returns a newly created database instance.
@@ -93,20 +140,53 @@ func NewDatabase() *Database {
     d.datatypes  = make(ResourceTypeRegistry)
     d.datastore  = make(ResourceDatastore)
     d.references = make(ReferenceTable)
+    d.crypto     = make(map[string]CryptoMethod)
+    d.stores     = make(map[string]Datastore)
     return d
 }
 
+// The RegisterType() function registers a new resource type factory within this
+// instance.
 func (d *Database) RegisterType(factory ResourceFactory) {
     d.datatypes[factory.Type()] = factory
 }
 
+// The RegisterCryptoMethod() instance method registers a cryptographic plugin
+// with this database.
+func (d *Database) RegisterCryptoMethod(method CryptoMethod) {
+    d.crypto[method.Type()] = method
+}
+
+// The RegisterDatastore() instance method registers a datastore plugin with
+// this database.
+func (d *Database) RegisterDatastore(store Datastore) {
+    d.stores[store.Type()] = store
+}
+
+func (d *Database) StoreAll() error {
+    for k, v := range d.datastore {
+        k.GetStorageId()
+        v.Key()
+    }
+
+    return nil
+}
+
 // The Create() database method creates a new resource from the specified parameters.
-func (d *Database) Create(resourceType ResourceType) (ResourceId, ResourceKey, error) {
+func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId string) (ResourceId, ResourceKey, error) {
     factory, ok := d.datatypes[resourceType]
     if !ok { return ResourceId(""), ResourceKey(""), E_UNKNOWN_TYPE }
 
-    resourceId  := ResourceId(GenerateUUID())
-    resourceKey := ResourceKey(GenerateRandomKey())
+    if storageId != "tmpfs" {
+        _, ok = d.stores[storageId]
+        if !ok { return ResourceId(""), ResourceKey(""), E_INVALID_STORAGE }
+    }
+
+    crypto, ok := d.crypto[cryptoId]
+    if !ok { return ResourceId(""), ResourceKey(""), E_INVALID_CRYPTO }
+
+    resourceId  := ResourceId(storageId + "://" + GenerateUUID())
+    resourceKey := crypto.GenerateKey()
 
     resource := factory.Create(resourceId, resourceKey)
     d.datastore[resourceId] = resource
@@ -119,7 +199,7 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
     resource, ok := d.datastore[resourceId]
     if !ok { return ReferenceId(""), E_UNKNOWN_RESOURCE }
 
-    if !bytes.Equal(resource.Key(), resourceKey) { return ReferenceId(""), E_INVALID_KEY }
+    if resource.Key() != resourceKey { return ReferenceId(""), E_INVALID_KEY }
 
     referenceId := ReferenceId(GenerateUUID())
     d.references[referenceId] = resource
@@ -144,12 +224,48 @@ func (d *Database) SupportedTypes() []ResourceType {
     return results
 }
 
-// The IsSupportedType() database method queries the database
+// The IsSupportedType() method returns whether a specific ResourceType is
+// supported in this database.
 func (d *Database) IsSupportedType(resourceType ResourceType) bool {
     _, ok := d.datatypes[resourceType]
     return ok
 }
 
+// The SupportedCryptoMethods() method returns a list of registered crypto
+// methods supported in this database.
+func (d *Database) SupportedCryptoMethods() []string {
+    results := make([]string, 0)
+    for k, _ := range d.crypto {
+        results = append(results, k)
+    }
+    return results
+}
+
+// The IsSupportedCryptoMethod() method returns whether the supplied crypto
+// method is supported in this database.
+func (d *Database) IsSupportedCryptoMethod(crypto string) bool {
+    _, ok := d.crypto[crypto]
+    return ok
+}
+
+// The SupportedDatastores() method returns a list of registered storage
+// backends.
+func (d *Database) SupportedStorageTypes() []string {
+    results := make([]string, 0)
+    for k, _ := range d.stores {
+        results = append(results, k)
+    }
+    return results
+}
+
+// The IsSupportedDatastore() method returns true if the supplied storage
+// backend is supported in this database.
+func (d *Database) IsSupportedStorageType(store string) bool {
+    _, ok := d.stores[store]
+    return ok
+}
+
+// The Resolve() database method resolves a ReferenceId to a ResourceId.
 func (d *Database) Resolve(referenceId ReferenceId) (ResourceId, error) {
     res, ok := d.references[referenceId]
     if !ok { return ResourceId(""), E_INVALID_REFERENCE }
@@ -159,14 +275,5 @@ func (d *Database) Resolve(referenceId ReferenceId) (ResourceId, error) {
 // The GenerateUUID() function
 func GenerateUUID() string {
     return uuid.New()
-}
-
-// The GenerateRandomKey() function
-func GenerateRandomKey() string {
-    raw := make([]byte, 512)
-    rand.Read(raw)
-    hash := sha256.New()
-    hash.Write(raw[:])
-    return hex.EncodeToString(hash.Sum(nil))
 }
 

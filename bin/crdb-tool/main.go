@@ -43,7 +43,7 @@ type Command interface {
 type CRDBCommandListener struct{}
 
 func (d *CRDBCommandListener) RespondTo(cmd string) bool {
-    return cmd == "create" || cmd == "attach" || cmd == "detach" || cmd == "types"
+    return cmd == "create" || cmd == "attach" || cmd == "detach" || cmd == "list"
 }
 
 func (d *CRDBCommandListener) Execute(client *crdb.Client) {
@@ -51,16 +51,16 @@ func (d *CRDBCommandListener) Execute(client *crdb.Client) {
     case "create": d.DoCreate(client)
     case "attach": d.DoAttach(client)
     case "detach": d.DoDetach(client)
-    case  "types": d.DoTypes(client)
+    case  "list": d.DoListTypes(client)
     }
 }
 
 func (d *CRDBCommandListener) DoCreate(client *crdb.Client) {
-    if flag.NArg() < 2 {
-        fmt.Fprintf(os.Stderr, "Usage: crdb-tool create <ResourceType>\n")
+    if flag.NArg() < 4 {
+        fmt.Fprintf(os.Stderr, "Usage: crdb-tool create <ResourceType> <StorageId> <CryptoTypeId>\n")
         os.Exit(1)
     }
-    resourceId, resourceKey, e := client.Create(crdb.ResourceType(flag.Arg(1)))
+    resourceId, resourceKey, e := client.Create(crdb.ResourceType(flag.Arg(1)), flag.Arg(2), flag.Arg(3))
     if e != nil {
         fmt.Fprintf(os.Stderr, "Error: Failed to execute create: %v\n", e)
         os.Exit(1)
@@ -95,11 +95,39 @@ func (d *CRDBCommandListener) DoDetach(client *crdb.Client) {
     }
 }
 
-func (d *CRDBCommandListener) DoTypes(client *crdb.Client) {
+func (d *CRDBCommandListener) DoListTypes(client *crdb.Client) {
+    if flag.NArg() < 2 {
+        fmt.Fprintf(os.Stderr, "Usage: crdb-tool list <datatype|storage|crypto>\n")
+        os.Exit(1)
+    }
+
     fmt.Println("CRDT Supported Types:")
-    resourceTypes, _ := client.SupportedTypes()
+    var resourceTypes []string
+
+    switch flag.Arg(1) {
+    case "datatype":
+        resourceTypes, _ = client.SupportedTypes()
+    case "storage":
+        resourceTypes, _ = client.SupportedStorageTypes()
+    case "crypto":
+        resourceTypes, _ = client.SupportedCryptoMethods()
+    default:
+        fmt.Fprintf(os.Stderr, "Usage: crdb-tool list <datatype|storage|crypto>\n")
+        os.Exit(1)
+    }
+
     for _, resourceType := range resourceTypes {
-        isSupportedCheck, _ := client.IsSupportedType(resourceType)
+        var isSupportedCheck bool
+
+        switch flag.Arg(1) {
+        case "datatype":
+            isSupportedCheck, _ = client.IsSupportedType(resourceType)
+        case "storage":
+            isSupportedCheck, _ = client.IsSupportedStorageType(resourceType)
+        case "crypto":
+            isSupportedCheck, _ = client.IsSupportedCryptoMethod(resourceType)
+        }
+
         fmt.Printf("  %s - %v\n", resourceType, isSupportedCheck)
     }
     fmt.Println("")
@@ -119,7 +147,7 @@ func main() {
         create - Create a new resource.
         attach - Attach to resource and get reference.
         detach - Detach from resource and GC data.
-        types  - List registered resource types.
+        types  - List datatypes, storage types and crypto types.
 
     Types:
         crdt:gset

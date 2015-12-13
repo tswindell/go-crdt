@@ -70,9 +70,11 @@ func (d *Client) Close() {
 }
 
 // The Create client request method
-func (d *Client) Create(resourceType ResourceType) (ResourceId, ResourceKey, error) {
+func (d *Client) Create(resourceType ResourceType, storageId string, cryptoId string) (ResourceId, ResourceKey, error) {
     r, e := d.CRDTClient.Create(context.Background(), &pb.CreateRequest{
                                                           ResourceType: string(resourceType),
+                                                          StorageId: storageId,
+                                                          CryptoId: cryptoId,
                                                       })
     if e != nil { return ResourceId(""), ResourceKey(""), e }
 
@@ -88,7 +90,7 @@ func (d *Client) Attach(resourceId ResourceId, resourceKey ResourceKey) (Referen
     r, e := d.CRDTClient.Attach(context.Background(),
                                 &pb.AttachRequest{
                                     ResourceId: string(resourceId),
-                                    ResourceKey: []byte(resourceKey),
+                                    ResourceKey: string(resourceKey),
                                 })
     if e != nil { return ReferenceId(""), e }
 
@@ -111,23 +113,67 @@ func (d *Client) Detach(referenceId ReferenceId) error {
 }
 
 // The SupportedTypes client request method
-func (d *Client) SupportedTypes() ([]ResourceType, error) {
-    results := make([]ResourceType, 0)
+func (d *Client) SupportedTypes() ([]string, error) {
+    results := make([]string, 0)
 
     r, e := d.CRDTClient.SupportedTypes(context.Background(), &pb.EmptyMessage{})
     if e != nil { return results, e }
 
     for _, v := range r.Types {
-        results = append(results, ResourceType(v.Type))
+        results = append(results, v.Type)
     }
 
     return results, nil
 }
 
 // The IsSupportedType client request method
-func (d *Client) IsSupportedType(resourceType ResourceType) (bool, error) {
+func (d *Client) IsSupportedType(resourceType string) (bool, error) {
     r, e := d.CRDTClient.IsSupportedType(context.Background(),
-                                         &pb.TypeMessage{Type: string(resourceType)})
+                                         &pb.TypeMessage{Type: resourceType})
+    if e != nil { return false, e }
+    return r.Value, e
+}
+
+// The SupportedStorageTypes client request method
+func (d *Client) SupportedStorageTypes() ([]string, error) {
+    results := make([]string, 0)
+
+    r, e := d.CRDTClient.SupportedStorageTypes(context.Background(), &pb.EmptyMessage{})
+    if e != nil { return results, e }
+
+    for _, v := range r.Types {
+        results = append(results, v.Type)
+    }
+
+    return results, nil
+}
+
+// The IsSupportedStorageType client request method
+func (d *Client) IsSupportedStorageType(storageType string) (bool, error) {
+    r, e := d.CRDTClient.IsSupportedStorageType(context.Background(),
+                                                &pb.TypeMessage{Type: storageType})
+    if e != nil { return false, e }
+    return r.Value, e
+}
+
+// The SupportedTypes client request method
+func (d *Client) SupportedCryptoMethods() ([]string, error) {
+    results := make([]string, 0)
+
+    r, e := d.CRDTClient.SupportedCryptoMethods(context.Background(), &pb.EmptyMessage{})
+    if e != nil { return results, e }
+
+    for _, v := range r.Types {
+        results = append(results, v.Type)
+    }
+
+    return results, nil
+}
+
+// The IsSupportedType client request method
+func (d *Client) IsSupportedCryptoMethod(cryptoMethod string) (bool, error) {
+    r, e := d.CRDTClient.IsSupportedCryptoMethod(context.Background(),
+                                                 &pb.TypeMessage{Type: cryptoMethod})
     if e != nil { return false, e }
     return r.Value, e
 }

@@ -20,6 +20,14 @@ service CRDT {
     // Returns a list of supported data types.
     rpc SupportedTypes(EmptyMessage) returns (SupportedTypesResponse) {}
     rpc IsSupportedType(TypeMessage) returns (BooleanResponse) {}
+
+    // Returns a list of supported storage backends.
+    rpc SupportedStorageTypes(EmptyMessage) returns (SupportedStorageTypesResponse) {}
+    rpc IsSupportedStorageType(TypeMessage) returns (BooleanResponse) {}
+
+    // Supported crypto methods.
+    rpc SupportedCryptoMethods(EmptyMessage) returns (SupportedCryptoMethodsResponse) {}
+    rpc IsSupportedCryptoMethod(TypeMessage) returns (BooleanResponse) {}
 }
 
 message EmptyMessage {}
@@ -44,17 +52,19 @@ message ResourceObject {
 
 message CreateRequest {
     string resourceType = 1; // Type specification URI.
+    string storageId = 2;
+    string cryptoId = 3;
 }
 
 message CreateResponse {
     Status status      = 1;
     string resourceId  = 2;
-    bytes  resourceKey = 3;
+    string resourceKey = 3;
 }
 
 message AttachRequest {
     string resourceId  = 1; // Presumably IPFS hash
-    bytes  resourceKey = 2;
+    string resourceKey = 2;
 }
 
 message AttachResponse {
@@ -71,6 +81,14 @@ message DetachResponse {
 }
 
 message SupportedTypesResponse {
+    repeated TypeMessage types = 1;
+}
+
+message SupportedStorageTypesResponse {
+    repeated TypeMessage types = 1;
+}
+
+message SupportedCryptoMethodsResponse {
     repeated TypeMessage types = 1;
 }
 
@@ -162,6 +180,6 @@ message SetCloneRequest {
 message SetCloneResponse {
     Status status = 1;
     string resourceId = 2; // New ResourceId
-    bytes  resourceKey = 3;
+    string resourceKey = 3;
 }
 

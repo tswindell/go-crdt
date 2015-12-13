@@ -69,11 +69,11 @@ func (d *TwoPhaseSetResource) Type() ResourceType {
     return TWOPHASESET_RESOURCE_TYPE
 }
 
-func (d *TwoPhaseSetResource) Save() []byte {
+func (d *TwoPhaseSetResource) Serialize() []byte {
     return nil
 }
 
-func (d *TwoPhaseSetResource) Load(data []byte) error {
+func (d *TwoPhaseSetResource) Deserialize(data []byte) error {
     return nil
 }
 
@@ -99,22 +99,22 @@ func (d *TwoPhaseSetResourceFactory) Create(resourceId ResourceId, resourceKey R
     return resource
 }
 
-func (d *TwoPhaseSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*set.TwoPhase, error) {
+func (d *TwoPhaseSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*TwoPhaseSetResource, error) {
     resourceId, e := d.database.Resolve(referenceId)
     if e != nil { return nil, e }
 
     resource, ok := d.resources[resourceId]
     if !ok { return nil, E_UNKNOWN_RESOURCE }
 
-    return resource.object, nil
+    return resource, nil
 }
 
 // The List() service method
 func (d *TwoPhaseSetResourceFactory) List(m *pb.SetListRequest, stream pb.TwoPhaseSet_ListServer) error {
-    set, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil { return nil }
 
-    for v := range set.Iterate() {
+    for v := range resource.object.Iterate() {
         j, e := base64.StdEncoding.DecodeString(v.(string))
         if e != nil { return nil }
 
@@ -131,11 +131,11 @@ func (d *TwoPhaseSetResourceFactory) List(m *pb.SetListRequest, stream pb.TwoPha
 func (d *TwoPhaseSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsertRequest) (*pb.SetInsertResponse, error) {
     status := &pb.Status{Success: true}
 
-    gset, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    } else if !gset.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !resource.object.Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_PRESENT.Error()
     }
@@ -147,11 +147,11 @@ func (d *TwoPhaseSetResourceFactory) Insert(ctx context.Context, m *pb.SetInsert
 func (d *TwoPhaseSetResourceFactory) Remove(ctx context.Context, m *pb.SetRemoveRequest) (*pb.SetRemoveResponse, error) {
     status := &pb.Status{Success: true}
 
-    gset, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
-    } else if !gset.Remove(base64.StdEncoding.EncodeToString(m.Object.Object)) {
+    } else if !resource.object.Remove(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_REMOVED.Error()
     }
@@ -164,13 +164,13 @@ func (d *TwoPhaseSetResourceFactory) Length(ctx context.Context, m *pb.SetLength
     status := &pb.Status{Success: true}
     length := 0
 
-    gset, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
 
     } else {
-        length = gset.Length()
+        length = resource.object.Length()
     }
 
     return &pb.SetLengthResponse{Status: status, Length: uint64(length)}, nil
@@ -181,12 +181,12 @@ func (d *TwoPhaseSetResourceFactory) Contains(ctx context.Context, m *pb.SetCont
     status := &pb.Status{Success: true}
     result := false
 
-    gset, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.Object.ReferenceId))
     if e != nil {
         status.Success = false
         status.ErrorType = e.Error()
     } else {
-        result = gset.Contains(base64.StdEncoding.EncodeToString(m.Object.Object))
+        result = resource.object.Contains(base64.StdEncoding.EncodeToString(m.Object.Object))
     }
 
     return &pb.SetContainsResponse{Status: status, Result: result}, nil
@@ -211,7 +211,7 @@ func (d *TwoPhaseSetResourceFactory) Equals(ctx context.Context, m *pb.SetEquals
 
     return &pb.SetEqualsResponse{
                Status: &pb.Status{Success: true},
-               Result: setA.Equals(setB),
+               Result: setA.object.Equals(setB.object),
            }, nil
 }
 
@@ -231,7 +231,7 @@ func (d *TwoPhaseSetResourceFactory) Merge(ctx context.Context, m *pb.SetMergeRe
                }, nil
     }
 
-    setA.Merge(setB)
+    setA.object.Merge(setB.object)
 
     return &pb.SetMergeResponse{
                Status: &pb.Status{Success: true},
@@ -240,27 +240,30 @@ func (d *TwoPhaseSetResourceFactory) Merge(ctx context.Context, m *pb.SetMergeRe
 
 // The Clone() service method
 func (d *TwoPhaseSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRequest) (*pb.SetCloneResponse, error) {
-    set, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
+    resource, e := d.__resolve_reference(ReferenceId(m.ReferenceId))
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
 
-    resourceId, resourceKey, e := d.database.Create(d.Type())
+    cryptoId := resource.Key().TypeId()
+    storageId := resource.Id().GetStorageId()
+
+    newResourceId, newResourceKey, e := d.database.Create(d.Type(), cryptoId, storageId)
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
 
-    resource, _ := d.resources[resourceId]
-    resource.object = set.Clone()
+    newResource, _ := d.resources[newResourceId]
+    newResource.object = resource.object.Clone()
 
     return &pb.SetCloneResponse{
                Status: &pb.Status{Success: true},
-               ResourceId: string(resourceId),
-               ResourceKey: []byte(resourceKey),
+               ResourceId: string(newResourceId),
+               ResourceKey: string(newResourceKey),
            }, nil
 }
 

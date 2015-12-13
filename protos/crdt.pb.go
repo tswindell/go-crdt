@@ -21,6 +21,8 @@ It has these top-level messages:
 	DetachRequest
 	DetachResponse
 	SupportedTypesResponse
+	SupportedStorageTypesResponse
+	SupportedCryptoMethodsResponse
 	SetListRequest
 	SetInsertRequest
 	SetInsertResponse
@@ -96,6 +98,8 @@ func (*ResourceObject) ProtoMessage()    {}
 
 type CreateRequest struct {
 	ResourceType string `protobuf:"bytes,1,opt,name=resourceType" json:"resourceType,omitempty"`
+	StorageId    string `protobuf:"bytes,2,opt,name=storageId" json:"storageId,omitempty"`
+	CryptoId     string `protobuf:"bytes,3,opt,name=cryptoId" json:"cryptoId,omitempty"`
 }
 
 func (m *CreateRequest) Reset()         { *m = CreateRequest{} }
@@ -105,7 +109,7 @@ func (*CreateRequest) ProtoMessage()    {}
 type CreateResponse struct {
 	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
 	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey []byte  `protobuf:"bytes,3,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
+	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
 }
 
 func (m *CreateResponse) Reset()         { *m = CreateResponse{} }
@@ -121,7 +125,7 @@ func (m *CreateResponse) GetStatus() *Status {
 
 type AttachRequest struct {
 	ResourceId  string `protobuf:"bytes,1,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey []byte `protobuf:"bytes,2,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
+	ResourceKey string `protobuf:"bytes,2,opt,name=resourceKey" json:"resourceKey,omitempty"`
 }
 
 func (m *AttachRequest) Reset()         { *m = AttachRequest{} }
@@ -176,6 +180,36 @@ func (m *SupportedTypesResponse) String() string { return proto.CompactTextStrin
 func (*SupportedTypesResponse) ProtoMessage()    {}
 
 func (m *SupportedTypesResponse) GetTypes() []*TypeMessage {
+	if m != nil {
+		return m.Types
+	}
+	return nil
+}
+
+type SupportedStorageTypesResponse struct {
+	Types []*TypeMessage `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"`
+}
+
+func (m *SupportedStorageTypesResponse) Reset()         { *m = SupportedStorageTypesResponse{} }
+func (m *SupportedStorageTypesResponse) String() string { return proto.CompactTextString(m) }
+func (*SupportedStorageTypesResponse) ProtoMessage()    {}
+
+func (m *SupportedStorageTypesResponse) GetTypes() []*TypeMessage {
+	if m != nil {
+		return m.Types
+	}
+	return nil
+}
+
+type SupportedCryptoMethodsResponse struct {
+	Types []*TypeMessage `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"`
+}
+
+func (m *SupportedCryptoMethodsResponse) Reset()         { *m = SupportedCryptoMethodsResponse{} }
+func (m *SupportedCryptoMethodsResponse) String() string { return proto.CompactTextString(m) }
+func (*SupportedCryptoMethodsResponse) ProtoMessage()    {}
+
+func (m *SupportedCryptoMethodsResponse) GetTypes() []*TypeMessage {
 	if m != nil {
 		return m.Types
 	}
@@ -365,7 +399,7 @@ func (*SetCloneRequest) ProtoMessage()    {}
 type SetCloneResponse struct {
 	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
 	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey []byte  `protobuf:"bytes,3,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
+	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
 }
 
 func (m *SetCloneResponse) Reset()         { *m = SetCloneResponse{} }
@@ -395,6 +429,12 @@ type CRDTClient interface {
 	// Returns a list of supported data types.
 	SupportedTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedTypesResponse, error)
 	IsSupportedType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
+	// Returns a list of supported storage backends.
+	SupportedStorageTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedStorageTypesResponse, error)
+	IsSupportedStorageType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
+	// Supported crypto methods.
+	SupportedCryptoMethods(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedCryptoMethodsResponse, error)
+	IsSupportedCryptoMethod(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
 }
 
 type cRDTClient struct {
@@ -450,6 +490,42 @@ func (c *cRDTClient) IsSupportedType(ctx context.Context, in *TypeMessage, opts 
 	return out, nil
 }
 
+func (c *cRDTClient) SupportedStorageTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedStorageTypesResponse, error) {
+	out := new(SupportedStorageTypesResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/SupportedStorageTypes", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) IsSupportedStorageType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error) {
+	out := new(BooleanResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/IsSupportedStorageType", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) SupportedCryptoMethods(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedCryptoMethodsResponse, error) {
+	out := new(SupportedCryptoMethodsResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/SupportedCryptoMethods", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) IsSupportedCryptoMethod(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error) {
+	out := new(BooleanResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/IsSupportedCryptoMethod", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for CRDT service
 
 type CRDTServer interface {
@@ -462,6 +538,12 @@ type CRDTServer interface {
 	// Returns a list of supported data types.
 	SupportedTypes(context.Context, *EmptyMessage) (*SupportedTypesResponse, error)
 	IsSupportedType(context.Context, *TypeMessage) (*BooleanResponse, error)
+	// Returns a list of supported storage backends.
+	SupportedStorageTypes(context.Context, *EmptyMessage) (*SupportedStorageTypesResponse, error)
+	IsSupportedStorageType(context.Context, *TypeMessage) (*BooleanResponse, error)
+	// Supported crypto methods.
+	SupportedCryptoMethods(context.Context, *EmptyMessage) (*SupportedCryptoMethodsResponse, error)
+	IsSupportedCryptoMethod(context.Context, *TypeMessage) (*BooleanResponse, error)
 }
 
 func RegisterCRDTServer(s *grpc.Server, srv CRDTServer) {
@@ -528,6 +610,54 @@ func _CRDT_IsSupportedType_Handler(srv interface{}, ctx context.Context, dec fun
 	return out, nil
 }
 
+func _CRDT_SupportedStorageTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).SupportedStorageTypes(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_IsSupportedStorageType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(TypeMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).IsSupportedStorageType(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_SupportedCryptoMethods_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).SupportedCryptoMethods(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_IsSupportedCryptoMethod_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(TypeMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).IsSupportedCryptoMethod(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _CRDT_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "crdt.CRDT",
 	HandlerType: (*CRDTServer)(nil),
@@ -551,6 +681,22 @@ var _CRDT_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IsSupportedType",
 			Handler:    _CRDT_IsSupportedType_Handler,
+		},
+		{
+			MethodName: "SupportedStorageTypes",
+			Handler:    _CRDT_SupportedStorageTypes_Handler,
+		},
+		{
+			MethodName: "IsSupportedStorageType",
+			Handler:    _CRDT_IsSupportedStorageType_Handler,
+		},
+		{
+			MethodName: "SupportedCryptoMethods",
+			Handler:    _CRDT_SupportedCryptoMethods_Handler,
+		},
+		{
+			MethodName: "IsSupportedCryptoMethod",
+			Handler:    _CRDT_IsSupportedCryptoMethod_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
