@@ -26,30 +26,30 @@ package set
 // Common Go representation of a math set.
 type Set map[interface{}]struct{}
 
-func (s *Set) Insert(item interface{}) bool {
+func (s Set) Insert(item interface{}) bool {
     found := s.Contains(item)
-    (*s)[item] = struct{}{}
+    s[item] = struct{}{}
     return !found
 }
 
-func (s *Set) Remove(item interface{}) {
-    delete(*s, item)
+func (s Set) Remove(item interface{}) {
+    delete(s, item)
 }
 
-func (s *Set) Contains(item interface{}) bool {
-    _, found := (*s)[item]
+func (s Set) Contains(item interface{}) bool {
+    _, found := s[item]
     return found
 }
 
-func (s *Set) Length() int {
-    return len(*s)
+func (s Set) Length() int {
+    return len(s)
 }
 
-func (s *Set) Equals(other Set) bool {
-    if len(*s) != len(other) {
+func (s Set) Equals(other Set) bool {
+    if len(s) != len(other) {
         return false
     }
-    for i := range *s {
+    for i := range s {
         if !other.Contains(i) {
             return false
         }
@@ -57,38 +57,38 @@ func (s *Set) Equals(other Set) bool {
     return true
 }
 
-func (s *Set) Clear() {
-    *s = make(Set)
-}
-
-func (s *Set) Clone() Set {
+func (s Set) Clone() Set {
     result := make(Set)
-    for i := range *s {
+    for i := range s {
         result.Insert(i)
     }
     return result
 }
 
-func (s *Set) Merge(other Set) {
+func (s Set) Merge(other Set) {
     for i := range other {
         s.Insert(i)
     }
 }
 
-func (s *Set) Iterate() <-chan interface{} {
+func (s Set) Iterate() <-chan interface{} {
     ch := make(chan interface{})
     go func() {
-        for i := range *s { ch <- i }
+        for i := range s { ch <- i }
         close(ch)
     }()
     return ch
 }
 
-func (s *Set) ToSlice() []interface{} {
-    result := make([]interface{}, 0, len(*s))
-    for i := range *s {
+func (s Set) ToSlice() []interface{} {
+    result := make([]interface{}, 0, len(s))
+    for i := range s {
         result = append(result, i)
     }
     return result
+}
+
+func (s *Set) Clear() {
+    *s = make(Set)
 }
 

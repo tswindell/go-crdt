@@ -26,26 +26,26 @@ package set
 // Common Go representation of a math set.
 type GSet map[interface{}]struct{}
 
-func (s *GSet) Insert(item interface{}) bool {
+func (s GSet) Insert(item interface{}) bool {
     found := s.Contains(item)
-    (*s)[item] = struct{}{}
+    (s)[item] = struct{}{}
     return !found
 }
 
-func (s *GSet) Contains(item interface{}) bool {
-    _, found := (*s)[item]
+func (s GSet) Contains(item interface{}) bool {
+    _, found := (s)[item]
     return found
 }
 
-func (s *GSet) Length() int {
-    return len(*s)
+func (s GSet) Length() int {
+    return len(s)
 }
 
-func (s *GSet) Equals(other GSet) bool {
-    if len(*s) != len(other) {
+func (s GSet) Equals(other GSet) bool {
+    if len(s) != len(other) {
         return false
     }
-    for i := range *s {
+    for i := range s {
         if !other.Contains(i) {
             return false
         }
@@ -53,36 +53,36 @@ func (s *GSet) Equals(other GSet) bool {
     return true
 }
 
-func (s *GSet) Clear() {
-    *s = make(GSet)
+func (s GSet) Clear() {
+    s = make(GSet)
 }
 
-func (s *GSet) Clone() GSet {
+func (s GSet) Clone() GSet {
     result := make(GSet)
-    for i := range *s {
+    for i := range s {
         result.Insert(i)
     }
     return result
 }
 
-func (s *GSet) Merge(other GSet) {
+func (s GSet) Merge(other GSet) {
     for i := range other {
         s.Insert(i)
     }
 }
 
-func (s *GSet) Iterate() <-chan interface{} {
+func (s GSet) Iterate() <-chan interface{} {
     ch := make(chan interface{})
     go func() {
-        for i := range *s { ch <- i }
+        for i := range s { ch <- i }
         close(ch)
     }()
     return ch
 }
 
-func (s *GSet) ToSlice() []interface{} {
-    result := make([]interface{}, 0, len(*s))
-    for i := range *s {
+func (s GSet) ToSlice() []interface{} {
+    result := make([]interface{}, 0, len(s))
+    for i := range s {
         result = append(result, i)
     }
     return result
