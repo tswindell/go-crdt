@@ -105,7 +105,7 @@ func (*CreateRequest) ProtoMessage()    {}
 type CreateResponse struct {
 	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
 	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
+	ResourceKey []byte  `protobuf:"bytes,3,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
 }
 
 func (m *CreateResponse) Reset()         { *m = CreateResponse{} }
@@ -121,7 +121,7 @@ func (m *CreateResponse) GetStatus() *Status {
 
 type AttachRequest struct {
 	ResourceId  string `protobuf:"bytes,1,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey string `protobuf:"bytes,2,opt,name=resourceKey" json:"resourceKey,omitempty"`
+	ResourceKey []byte `protobuf:"bytes,2,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
 }
 
 func (m *AttachRequest) Reset()         { *m = AttachRequest{} }
@@ -365,7 +365,7 @@ func (*SetCloneRequest) ProtoMessage()    {}
 type SetCloneResponse struct {
 	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
 	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
+	ResourceKey []byte  `protobuf:"bytes,3,opt,name=resourceKey,proto3" json:"resourceKey,omitempty"`
 }
 
 func (m *SetCloneResponse) Reset()         { *m = SetCloneResponse{} }

@@ -49,12 +49,12 @@ message CreateRequest {
 message CreateResponse {
     Status status      = 1;
     string resourceId  = 2;
-    string resourceKey = 3;
+    bytes  resourceKey = 3;
 }
 
 message AttachRequest {
     string resourceId  = 1; // Presumably IPFS hash
-    string resourceKey = 2;
+    bytes  resourceKey = 2;
 }
 
 message AttachResponse {
@@ -162,6 +162,6 @@ message SetCloneRequest {
 message SetCloneResponse {
     Status status = 1;
     string resourceId = 2; // New ResourceId
-    string resourceKey = 3;
+    bytes  resourceKey = 3;
 }
 
