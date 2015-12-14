@@ -54,13 +54,13 @@ func NewServer() *Server {
     d.database = NewDatabase()
 
     // Register cryptographic methods.
-    aes128cbc, _ := NewAESCryptoMethod(16)
+    aes128cbc, _ := NewAESCryptoMethod(AES_128_KEY_SIZE)
     d.database.RegisterCryptoMethod(aes128cbc)
 
-    aes192cbc, _ := NewAESCryptoMethod(24)
+    aes192cbc, _ := NewAESCryptoMethod(AES_194_KEY_SIZE)
     d.database.RegisterCryptoMethod(aes192cbc)
 
-    aes256cbc, _ := NewAESCryptoMethod(32)
+    aes256cbc, _ := NewAESCryptoMethod(AES_256_KEY_SIZE)
     d.database.RegisterCryptoMethod(aes256cbc)
 
     // Register resource data types.
