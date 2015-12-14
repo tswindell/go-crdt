@@ -24,6 +24,7 @@
 package crdb
 
 import (
+    "bytes"
     "encoding/base64"
 
     "fmt"
@@ -69,8 +70,8 @@ func (d *TwoPhaseSetResource) Type() ResourceType {
     return TWOPHASESET_RESOURCE_TYPE
 }
 
-func (d *TwoPhaseSetResource) Serialize() []byte {
-    return nil
+func (d *TwoPhaseSetResource) Serialize(buff *bytes.Buffer) error {
+    return d.object.Serialize(buff)
 }
 
 type TwoPhaseSetResourceFactory struct {
@@ -95,8 +96,11 @@ func (d *TwoPhaseSetResourceFactory) Create(resourceId ResourceId, resourceKey R
     return resource
 }
 
-func (d *TwoPhaseSetResourceFactory) Restore(data []byte) (Resource, error) {
-    return nil, nil
+func (d *TwoPhaseSetResourceFactory) Restore(resourceId ResourceId, resourceKey ResourceKey, buff *bytes.Buffer) (Resource, error) {
+    resource := NewTwoPhaseSetResource(resourceId, resourceKey)
+    if e := resource.object.Deserialize(buff); e != nil { return nil, e }
+    d.resources[resourceId] = resource
+    return resource, nil
 }
 
 func (d *TwoPhaseSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*TwoPhaseSetResource, error) {

@@ -24,9 +24,10 @@
 package crdb
 
 import (
-    "encoding/base64"
-
+    "bytes"
     "fmt"
+
+     "encoding/base64"
 
     "github.com/tswindell/go-crdt/sets"
 
@@ -69,8 +70,8 @@ func (d *GSetResource) Type() ResourceType {
     return GSET_RESOURCE_TYPE
 }
 
-func (d *GSetResource) Serialize() []byte {
-    return make([]byte, 0)
+func (d *GSetResource) Serialize(buff *bytes.Buffer) error {
+    return d.object.Serialize(buff)
 }
 
 type GSetResourceFactory struct {
@@ -95,8 +96,11 @@ func (d *GSetResourceFactory) Create(resourceId ResourceId, resourceKey Resource
     return resource
 }
 
-func (d *GSetResourceFactory) Restore(data []byte) (Resource, error) {
-    return nil, nil
+func (d *GSetResourceFactory) Restore(resourceId ResourceId, resourceKey ResourceKey, buff *bytes.Buffer) (Resource, error) {
+    resource := NewGSetResource(resourceId, resourceKey)
+    if e := resource.object.Deserialize(buff); e != nil { return nil, e }
+    d.resources[resourceId] = resource
+    return resource, nil
 }
 
 func (d *GSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*GSetResource, error) {
@@ -191,7 +195,6 @@ func (d *GSetResourceFactory) Equals(ctx context.Context, m *pb.SetEqualsRequest
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
-
 
     return &pb.SetEqualsResponse{
                Status: &pb.Status{Success: true},

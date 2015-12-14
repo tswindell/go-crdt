@@ -24,6 +24,7 @@
 package crdb
 
 import (
+    "bytes"
     "encoding/base64"
     "fmt"
     "strings"
@@ -87,7 +88,7 @@ type Resource interface {
     Key() ResourceKey
     Type() ResourceType
 
-    Serialize() []byte
+    Serialize(*bytes.Buffer) error
 }
 
 // The ResourceFactory interface defines the API that a resource type must
@@ -96,7 +97,7 @@ type ResourceFactory interface {
     Type() ResourceType
 
     Create(ResourceId, ResourceKey) Resource
-    Restore([]byte) (Resource, error)
+    Restore(ResourceId, ResourceKey, *bytes.Buffer) (Resource, error)
 }
 
 // The ResourceDatastore type
@@ -206,6 +207,7 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
     if !ok {
         var e error
         resource, e = d.Restore(resourceId, resourceKey)
+
         if e != nil { return ReferenceId(""), e }
     }
 
@@ -236,7 +238,12 @@ func (d *Database) Commit(referenceId ReferenceId) error {
     crypto, ok := d.crypto[resource.Key().TypeId()]
     if !ok { return E_INVALID_CRYPTO }
 
-    data, e := crypto.Encrypt(resource.Key(), resource.Serialize())
+    buff := bytes.Buffer{}
+    buff.WriteString(string(resource.Type()))
+    buff.WriteByte(byte(0x00))
+    if e := resource.Serialize(&buff); e != nil { return e }
+
+    data, e := crypto.Encrypt(resource.Key(), buff.Bytes())
     if e != nil { return e }
 
     e = storage.SetData(resource.Id(), data)
@@ -258,11 +265,15 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
     data, e = crypto.Decrypt(resourceKey, data)
     if e != nil { return nil, e }
 
-    resourceType := ResourceType(strings.SplitN(string(data), ":", 2)[0])
+    buff := bytes.NewBuffer(data)
+    typeString, e := buff.ReadString(byte(0x00))
+    if e != nil { return nil, e }
+
+    resourceType := ResourceType(typeString[:len(typeString) - 1])
     factory, ok := d.datatypes[resourceType]
     if !ok { return nil, E_UNKNOWN_TYPE }
 
-    resource, e := factory.Restore(data)
+    resource, e := factory.Restore(resourceId, resourceKey, buff)
     if e != nil { return nil, e }
 
     return resource, nil
