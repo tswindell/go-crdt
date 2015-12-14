@@ -24,6 +24,9 @@
 package set
 
 import "testing"
+import "bytes"
+import "encoding/base64"
+import "crypto/rand"
 
 func TestGSetNew(t *testing.T) {
     a := make(GSet)
@@ -132,5 +135,24 @@ func TestGSetMerge(t *testing.T) {
     if !a.Equals(c) {
         t.Error("Equals failed after merge!")
     }
+}
+
+func TestGSetSerialize(t *testing.T) {
+    a := make(GSet)
+    b := make(GSet)
+
+    for i := 0; i < 10; i++ {
+        data := make([]byte, 4)
+        rand.Read(data)
+        a.Insert(base64.StdEncoding.EncodeToString(data))
+    }
+
+    out := &bytes.Buffer{}
+    if e := a.Serialize(out); e != nil { t.Error(e) }
+
+    in := bytes.NewBuffer(out.Bytes())
+    if e := b.Deserialize(in); e != nil { t.Error(e) }
+
+    if !a.Equals(b) { t.Error("Match failed") }
 }
 

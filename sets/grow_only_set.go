@@ -23,7 +23,16 @@
 
 package set
 
-// Common Go representation of a math set.
+import (
+    "bytes"
+    "encoding/base64"
+    "encoding/binary"
+    "fmt"
+    "hash/crc32"
+    "io"
+)
+
+// Common Go representation of a grow only set.
 type GSet map[interface{}]struct{}
 
 func (s GSet) Insert(item interface{}) bool {
@@ -86,5 +95,60 @@ func (s GSet) ToSlice() []interface{} {
         result = append(result, i)
     }
     return result
+}
+
+var GSET_HEADER_MAGIC = []byte{'c', 'r', 'd', 't', ':', 'g', 's', 'e', 't', 0x00}
+
+func (s GSet) Serialize(buff *bytes.Buffer) error {
+    buff.Write(GSET_HEADER_MAGIC)
+
+    binary.Write(buff, binary.LittleEndian, uint32(s.Length()))
+
+    for i := range s.Iterate() {
+        data, e := base64.StdEncoding.DecodeString(i.(string))
+        if e != nil { return nil }
+
+        binary.Write(buff, binary.LittleEndian, uint64(len(data)))
+        binary.Write(buff, binary.LittleEndian, crc32.ChecksumIEEE(data))
+        buff.Write(data)
+    }
+
+    return nil
+}
+
+func (s GSet) Deserialize(buff *bytes.Buffer) error {
+    if buff.Len() < len(GSET_HEADER_MAGIC) { return fmt.Errorf("data too small") }
+
+    header := make([]byte, len(GSET_HEADER_MAGIC))
+    _, e := buff.Read(header)
+    if e != nil || !bytes.Equal(header, GSET_HEADER_MAGIC) { return fmt.Errorf("invalid header") }
+
+    var sizeof uint32
+    if e := binary.Read(buff, binary.LittleEndian, &sizeof); e != nil {
+        return e
+    }
+
+    for i := uint32(0); i < sizeof; i++ {
+        var datl uint64
+        var datc uint32
+
+        if e := binary.Read(buff, binary.LittleEndian, &datl); e != nil {
+            if e == io.EOF { return nil }
+        }
+        if e := binary.Read(buff, binary.LittleEndian, &datc); e != nil {
+            return e
+        }
+
+        object := make([]byte, datl)
+        if l, e := buff.Read(object); e != nil || l != int(datl) {
+            return fmt.Errorf("invalid format")
+        }
+
+        if datc != crc32.ChecksumIEEE(object) { return fmt.Errorf("crc32 failure") }
+
+        s.Insert(base64.StdEncoding.EncodeToString(object))
+    }
+
+    return nil
 }
 

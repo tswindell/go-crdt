@@ -23,15 +23,20 @@
 
 package set
 
+import (
+    "bytes"
+    "fmt"
+)
+
 type TwoPhase struct {
-    added   Set
-    removed Set
+    added   GSet
+    removed GSet
 }
 
 func New2P() *TwoPhase {
   s := new(TwoPhase)
-  s.added   = make(Set)
-  s.removed = make(Set)
+  s.added   = make(GSet)
+  s.removed = make(GSet)
   return s
 }
 
@@ -81,10 +86,34 @@ func (s *TwoPhase) Iterate() <-chan interface{} {
 }
 
 func (s *TwoPhase) ToSet() Set {
-    result := s.added.Clone()
-    for i := range s.removed {
-        result.Remove(i)
+    result := Set{}
+    for i := range s.added {
+        if !s.removed.Contains(i) { result.Insert(i) }
     }
     return result
+}
+
+var TWOPHASESET_HEADER_MAGIC = []byte{'c', 'r', 'd', 't', ':', '2', 'p', 's', 'e', 't', 0x00}
+
+func (s *TwoPhase) Serialize(buff *bytes.Buffer) error {
+    buff.Write(TWOPHASESET_HEADER_MAGIC)
+
+    s.added.Serialize(buff)
+    s.removed.Serialize(buff)
+
+    return nil
+}
+
+func (s *TwoPhase) Deserialize(buff *bytes.Buffer) error {
+    if buff.Len() < len(TWOPHASESET_HEADER_MAGIC) { return fmt.Errorf("data too small") }
+
+    header := make([]byte, len(TWOPHASESET_HEADER_MAGIC))
+    _, e := buff.Read(header)
+    if e != nil || !bytes.Equal(header, TWOPHASESET_HEADER_MAGIC) { return fmt.Errorf("invalid header") }
+
+    if e := s.added.Deserialize(buff); e != nil { return e }
+    if e := s.removed.Deserialize(buff); e != nil { return e }
+
+    return nil
 }
 
