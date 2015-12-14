@@ -43,7 +43,7 @@ type Command interface {
 type CRDBCommandListener struct{}
 
 func (d *CRDBCommandListener) RespondTo(cmd string) bool {
-    return cmd == "create" || cmd == "attach" || cmd == "detach" || cmd == "list"
+    return cmd == "create" || cmd == "attach" || cmd == "detach" || cmd == "commit" || cmd == "list"
 }
 
 func (d *CRDBCommandListener) Execute(client *crdb.Client) {
