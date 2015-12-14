@@ -44,8 +44,16 @@ var (
 // The ResourceId type is the representation of a resources' identifier.
 type ResourceId string
 
+func NewResourceId(storageId, resourceId string) ResourceId {
+    return ResourceId(storageId + ":" + resourceId)
+}
+
 func (d ResourceId) GetStorageId() string {
     return strings.SplitN(string(d), ":", 2)[0]
+}
+
+func (d ResourceId) GetId() string {
+    return strings.SplitN(string(d), ":", 2)[1]
 }
 
 // The ReferenceId type is the representation of a reference to a resource.
