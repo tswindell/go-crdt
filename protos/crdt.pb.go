@@ -20,6 +20,8 @@ It has these top-level messages:
 	AttachResponse
 	DetachRequest
 	DetachResponse
+	CommitRequest
+	CommitResponse
 	SupportedTypesResponse
 	SupportedStorageTypesResponse
 	SupportedCryptoMethodsResponse
@@ -165,6 +167,29 @@ func (m *DetachResponse) String() string { return proto.CompactTextString(m) }
 func (*DetachResponse) ProtoMessage()    {}
 
 func (m *DetachResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type CommitRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *CommitRequest) Reset()         { *m = CommitRequest{} }
+func (m *CommitRequest) String() string { return proto.CompactTextString(m) }
+func (*CommitRequest) ProtoMessage()    {}
+
+type CommitResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *CommitResponse) Reset()         { *m = CommitResponse{} }
+func (m *CommitResponse) String() string { return proto.CompactTextString(m) }
+func (*CommitResponse) ProtoMessage()    {}
+
+func (m *CommitResponse) GetStatus() *Status {
 	if m != nil {
 		return m.Status
 	}
@@ -426,6 +451,8 @@ type CRDTClient interface {
 	Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error)
 	// Detach ReferenceId reference from internal datastore.
 	Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error)
+	// Commit resource to persistent storage.
+	Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error)
 	// Returns a list of supported data types.
 	SupportedTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedTypesResponse, error)
 	IsSupportedType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
@@ -466,6 +493,15 @@ func (c *cRDTClient) Attach(ctx context.Context, in *AttachRequest, opts ...grpc
 func (c *cRDTClient) Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error) {
 	out := new(DetachResponse)
 	err := grpc.Invoke(ctx, "/crdt.CRDT/Detach", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error) {
+	out := new(CommitResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Commit", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -535,6 +571,8 @@ type CRDTServer interface {
 	Attach(context.Context, *AttachRequest) (*AttachResponse, error)
 	// Detach ReferenceId reference from internal datastore.
 	Detach(context.Context, *DetachRequest) (*DetachResponse, error)
+	// Commit resource to persistent storage.
+	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
 	// Returns a list of supported data types.
 	SupportedTypes(context.Context, *EmptyMessage) (*SupportedTypesResponse, error)
 	IsSupportedType(context.Context, *TypeMessage) (*BooleanResponse, error)
@@ -580,6 +618,18 @@ func _CRDT_Detach_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		return nil, err
 	}
 	out, err := srv.(CRDTServer).Detach(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Commit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(CommitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Commit(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -673,6 +723,10 @@ var _CRDT_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Detach",
 			Handler:    _CRDT_Detach_Handler,
+		},
+		{
+			MethodName: "Commit",
+			Handler:    _CRDT_Commit_Handler,
 		},
 		{
 			MethodName: "SupportedTypes",

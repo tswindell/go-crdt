@@ -73,10 +73,6 @@ func (d *GSetResource) Serialize() []byte {
     return make([]byte, 0)
 }
 
-func (d *GSetResource) Deserialize(data []byte) error {
-    return nil
-}
-
 type GSetResourceFactory struct {
     database  *Database
     resources  map[ResourceId]*GSetResource
@@ -97,6 +93,10 @@ func (d *GSetResourceFactory) Create(resourceId ResourceId, resourceKey Resource
     resource := NewGSetResource(resourceId, resourceKey)
     d.resources[resourceId] = resource
     return resource
+}
+
+func (d *GSetResourceFactory) Restore(data []byte) (Resource, error) {
+    return nil, nil
 }
 
 func (d *GSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*GSetResource, error) {

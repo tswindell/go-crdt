@@ -160,6 +160,21 @@ func (d *Server) Detach(ctx context.Context, m *pb.DetachRequest) (*pb.DetachRes
     return &pb.DetachResponse{Status: status}, nil
 }
 
+// The Commit() server method
+func (d *Server) Commit(ctx context.Context, m *pb.CommitRequest) (*pb.CommitResponse, error) {
+    referenceId := ReferenceId(m.ReferenceId)
+    status := &pb.Status{Success: true}
+
+    e := d.database.Commit(referenceId)
+    if e != nil {
+        status.Success = false
+        status.ErrorType = e.Error()
+    }
+
+    LogInfo("CommitResponse: success=%v error=%s", status.Success, status.ErrorType)
+    return &pb.CommitResponse{Status: status}, nil
+}
+
 // The SupportedTypes() server method
 func (d *Server) SupportedTypes(ctx context.Context, m *pb.EmptyMessage) (*pb.SupportedTypesResponse, error) {
     response := &pb.SupportedTypesResponse{Types: make([]*pb.TypeMessage, 0)}

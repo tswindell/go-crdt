@@ -88,8 +88,6 @@ type Resource interface {
     Type() ResourceType
 
     Serialize() []byte
-
-    Deserialize([]byte) error
 }
 
 // The ResourceFactory interface defines the API that a resource type must
@@ -98,6 +96,7 @@ type ResourceFactory interface {
     Type() ResourceType
 
     Create(ResourceId, ResourceKey) Resource
+    Restore([]byte) (Resource, error)
 }
 
 // The ResourceDatastore type
@@ -116,9 +115,8 @@ type Datastore interface {
 
     HasResource(ResourceId) bool
 
-    GetResourceData(ResourceId) ([]byte, error)
-
-    SetResourceData(ResourceId, []byte) error
+    GetData(ResourceId) ([]byte, error)
+    SetData(ResourceId, []byte) error
 }
 
 // The CryptoMethod interface type defines the interface that crypto methods
@@ -205,7 +203,11 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
 // The Attach() database method obtains a reference to a resource in the database.
 func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (ReferenceId, error) {
     resource, ok := d.datastore[resourceId]
-    if !ok { return ReferenceId(""), E_UNKNOWN_RESOURCE }
+    if !ok {
+        var e error
+        resource, e = d.Restore(resourceId, resourceKey)
+        if e != nil { return ReferenceId(""), e }
+    }
 
     if resource.Key() != resourceKey { return ReferenceId(""), E_INVALID_KEY }
 
@@ -220,6 +222,50 @@ func (d *Database) Detach(referenceId ReferenceId) error {
     if _, ok := d.references[referenceId]; !ok { return E_INVALID_REFERENCE }
     delete(d.references, referenceId)
     return nil
+}
+
+// The Commit() database method commits a resource by reference to persistent
+// storage.
+func (d *Database) Commit(referenceId ReferenceId) error {
+    resource, ok := d.references[referenceId]
+    if !ok { return E_INVALID_REFERENCE }
+
+    storage, ok := d.stores[resource.Id().GetStorageId()]
+    if !ok { return E_INVALID_STORAGE }
+
+    crypto, ok := d.crypto[resource.Key().TypeId()]
+    if !ok { return E_INVALID_CRYPTO }
+
+    data, e := crypto.Encrypt(resource.Key(), resource.Serialize())
+    if e != nil { return e }
+
+    e = storage.SetData(resource.Id(), data)
+    if e != nil { return e }
+    return nil
+}
+
+// The Restore() database method restores a resource from persistent storage.
+func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Resource, error) {
+    storage, ok := d.stores[resourceId.GetStorageId()]
+    if !ok { return nil, E_INVALID_STORAGE }
+
+    crypto, ok := d.crypto[resourceKey.TypeId()]
+    if !ok { return nil, E_INVALID_CRYPTO }
+
+    data, e := storage.GetData(resourceId)
+    if e != nil { return nil, e }
+
+    data, e = crypto.Decrypt(resourceKey, data)
+    if e != nil { return nil, e }
+
+    resourceType := ResourceType(strings.SplitN(string(data), ":", 2)[0])
+    factory, ok := d.datatypes[resourceType]
+    if !ok { return nil, E_UNKNOWN_TYPE }
+
+    resource, e := factory.Restore(data)
+    if e != nil { return nil, e }
+
+    return resource, nil
 }
 
 // The SupportedTypes() database method returns a list of types that this

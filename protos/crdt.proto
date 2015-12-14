@@ -17,6 +17,9 @@ service CRDT {
     // Detach ReferenceId reference from internal datastore.
     rpc Detach(DetachRequest) returns (DetachResponse) {}
 
+    // Commit resource to persistent storage.
+    rpc Commit(CommitRequest) returns (CommitResponse) {}
+
     // Returns a list of supported data types.
     rpc SupportedTypes(EmptyMessage) returns (SupportedTypesResponse) {}
     rpc IsSupportedType(TypeMessage) returns (BooleanResponse) {}
@@ -77,6 +80,14 @@ message DetachRequest {
 }
 
 message DetachResponse {
+    Status status = 1;
+}
+
+message CommitRequest {
+    string referenceId = 1;
+}
+
+message CommitResponse {
     Status status = 1;
 }
 

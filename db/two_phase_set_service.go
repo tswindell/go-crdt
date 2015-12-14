@@ -73,10 +73,6 @@ func (d *TwoPhaseSetResource) Serialize() []byte {
     return nil
 }
 
-func (d *TwoPhaseSetResource) Deserialize(data []byte) error {
-    return nil
-}
-
 type TwoPhaseSetResourceFactory struct {
     database  *Database
     resources  map[ResourceId]*TwoPhaseSetResource
@@ -97,6 +93,10 @@ func (d *TwoPhaseSetResourceFactory) Create(resourceId ResourceId, resourceKey R
     resource := NewTwoPhaseSetResource(resourceId, resourceKey)
     d.resources[resourceId] = resource
     return resource
+}
+
+func (d *TwoPhaseSetResourceFactory) Restore(data []byte) (Resource, error) {
+    return nil, nil
 }
 
 func (d *TwoPhaseSetResourceFactory) __resolve_reference(referenceId ReferenceId) (*TwoPhaseSetResource, error) {
