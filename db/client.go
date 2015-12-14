@@ -112,6 +112,16 @@ func (d *Client) Detach(referenceId ReferenceId) error {
     return nil
 }
 
+func (d *Client) Commit(referenceId ReferenceId) error {
+    r, e := d.CRDTClient.Commit(context.Background(),
+                                &pb.CommitRequest{
+                                    ReferenceId: string(referenceId),
+                                })
+    if e != nil { return e }
+    if !r.Status.Success { return fmt.Errorf(r.Status.ErrorType) }
+    return nil
+}
+
 // The SupportedTypes client request method
 func (d *Client) SupportedTypes() ([]string, error) {
     results := make([]string, 0)

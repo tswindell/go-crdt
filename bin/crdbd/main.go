@@ -24,11 +24,17 @@
 package main
 
 import (
+    "fmt"
+    "os"
     "github.com/tswindell/go-crdt/db"
 )
 
 func main() {
-    server := crdb.NewServer()
+    server, e := crdb.NewServer()
+    if e != nil {
+        fmt.Fprintf(os.Stderr, "Error: %v\n", e)
+    }
+
     server.Listen("127.0.0.1:9600")
 }
 

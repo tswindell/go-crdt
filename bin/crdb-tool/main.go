@@ -51,6 +51,7 @@ func (d *CRDBCommandListener) Execute(client *crdb.Client) {
     case "create": d.DoCreate(client)
     case "attach": d.DoAttach(client)
     case "detach": d.DoDetach(client)
+    case "commit": d.DoCommit(client)
     case  "list": d.DoListTypes(client)
     }
 }
@@ -91,6 +92,18 @@ func (d *CRDBCommandListener) DoDetach(client *crdb.Client) {
 
     if e := client.Detach(crdb.ReferenceId(flag.Arg(1))); e != nil {
         fmt.Fprintf(os.Stderr, "Error: Failed to execute detach: %v\n", e)
+        os.Exit(1)
+    }
+}
+
+func (d *CRDBCommandListener) DoCommit(client *crdb.Client) {
+    if flag.NArg() < 2 {
+        fmt.Fprintf(os.Stderr, "Usage: crdb-tool commit <ReferenceId>\n")
+        os.Exit(1)
+    }
+
+    if e := client.Commit(crdb.ReferenceId(flag.Arg(1))); e != nil {
+        fmt.Fprintf(os.Stderr, "Error: Failed to execute commit: %v\n", e)
         os.Exit(1)
     }
 }
@@ -147,11 +160,8 @@ func main() {
         create - Create a new resource.
         attach - Attach to resource and get reference.
         detach - Detach from resource and GC data.
-        types  - List datatypes, storage types and crypto types.
-
-    Types:
-        crdt:gset
-        crdt:2pset
+        commit - Write modifications to persistent storage.
+          list - List datatypes, storage types and crypto types.
 
 `
 

@@ -24,7 +24,10 @@
 package crdb
 
 import (
+    "fmt"
     "net"
+    "os/user"
+    "path"
     "strconv"
 
     "google.golang.org/grpc"
@@ -46,12 +49,18 @@ type Server struct {
 }
 
 // Returns a newly created Server instance.
-func NewServer() *Server {
+func NewServer() (*Server, error) {
     d := new(Server)
 
     // Add credentials, and other options.
     d.service = grpc.NewServer()
     d.database = NewDatabase()
+
+    // Register persistent storage modules.
+    u, e := user.Current()
+    if e != nil { return nil, fmt.Errorf("Failed to get user") }
+    filestore := NewFileStore(path.Join(u.HomeDir, ".crdb"))
+    d.database.RegisterDatastore(filestore)
 
     // Register cryptographic methods.
     aes128cbc, _ := NewAESCryptoMethod(AES_128_KEY_SIZE)
@@ -75,7 +84,7 @@ func NewServer() *Server {
 
     pb.RegisterGrowOnlySetServer(d.service, tGSet)
     pb.RegisterTwoPhaseSetServer(d.service, t2PSet)
-    return d
+    return d, nil
 }
 
 // If successful starts server listening on hostport parameter.
