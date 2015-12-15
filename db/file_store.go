@@ -39,6 +39,12 @@ type FileStore struct {
 func NewFileStore(basepath string) *FileStore {
     d := new(FileStore)
     d.basepath = basepath
+
+    // Make directory if not exist.
+    if _, e := os.Stat(basepath); os.IsNotExist(e) {
+        os.MkdirAll(basepath, 0755)
+    }
+
     return d
 }
 
@@ -46,7 +52,7 @@ func (d *FileStore) Type() string { return "file" }
 
 // The HasResource instance method returns true if this store has a specific resource.
 func (d *FileStore) HasResource(resourceId ResourceId) bool {
-    if _, e := os.Stat(path.Join(d.basepath, "store", resourceId.GetId())); os.IsNotExist(e) {
+    if _, e := os.Stat(path.Join(d.basepath, resourceId.GetId())); os.IsNotExist(e) {
         return false
     }
     return true
@@ -55,13 +61,13 @@ func (d *FileStore) HasResource(resourceId ResourceId) bool {
 // The GetResourceData instance method.
 func (d *FileStore) GetData(resourceId ResourceId) ([]byte, error) {
     if !d.HasResource(resourceId) { return nil, E_UNKNOWN_RESOURCE }
-    data, e := ioutil.ReadFile(path.Join(d.basepath, "store", resourceId.GetId()))
+    data, e := ioutil.ReadFile(path.Join(d.basepath, resourceId.GetId()))
     return data, e
 }
 
 // The SetResourceData instance method.
 func (d *FileStore) SetData(resourceId ResourceId, data []byte) error {
-    filepath := path.Join(d.basepath, "store", resourceId.GetId())
+    filepath := path.Join(d.basepath, resourceId.GetId())
     return ioutil.WriteFile(filepath, data, 0644)
 }
 

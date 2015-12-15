@@ -184,6 +184,7 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
     factory, ok := d.datatypes[resourceType]
     if !ok { return ResourceId(""), ResourceKey(""), E_UNKNOWN_TYPE }
 
+    // TODO: Replace with actual memcache "store" type.
     if storageId != "tmpfs" {
         _, ok = d.stores[storageId]
         if !ok { return ResourceId(""), ResourceKey(""), E_INVALID_STORAGE }

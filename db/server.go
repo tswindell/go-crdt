@@ -59,7 +59,7 @@ func NewServer() (*Server, error) {
     // Register persistent storage modules.
     u, e := user.Current()
     if e != nil { return nil, fmt.Errorf("Failed to get user") }
-    filestore := NewFileStore(path.Join(u.HomeDir, ".crdb"))
+    filestore := NewFileStore(path.Join(u.HomeDir, ".crdb", "store"))
     d.database.RegisterDatastore(filestore)
 
     // Register cryptographic methods.
