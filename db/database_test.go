@@ -120,7 +120,7 @@ func Test_NewDatabase_InitProcess(t *testing.T) {
         t.Error("Should not be able to make resources with unknown type!")
     }
 
-    fstore := NewFileStore("/tmp/crdb-store")
+    fstore := NewFileStore("/tmp/crdb-test")
     if d.IsSupportedStorageType(fstore.TypeId()) {
         t.Error("IsSupportedStorageType check failed, should not be true!")
     }
