@@ -29,14 +29,14 @@ import "encoding/base64"
 import "crypto/rand"
 
 func TestGSetNew(t *testing.T) {
-    a := make(GSet)
+    a := NewGSet()
     if a.Length() != 0 {
         t.Error("New Set should have 0 length!")
     }
 }
 
 func TestGSetInsert(t *testing.T) {
-    a := make(GSet)
+    a := NewGSet()
 
     if !a.Insert(1) {
         t.Error("Failed to insert 1 into Set!")
@@ -56,7 +56,7 @@ func TestGSetInsert(t *testing.T) {
 }
 
 func TestGSetContains(t *testing.T) {
-    a := make(GSet)
+    a := NewGSet()
 
     if a.Contains(1) {
         t.Error("Failed contains check in empty set!")
@@ -72,7 +72,7 @@ func TestGSetContains(t *testing.T) {
 }
 
 func TestGSetLength(t *testing.T) {
-    a := make(GSet)
+    a := NewGSet()
 
     for i := 1; i <= 10; i++ {
         a.Insert(i)
@@ -84,9 +84,9 @@ func TestGSetLength(t *testing.T) {
 
 
 func TestGSetEquals(t *testing.T) {
-    a := make(GSet)
-    b := make(GSet)
-    c := make(GSet)
+    a := NewGSet()
+    b := NewGSet()
+    c := NewGSet()
 
     for i := 1; i <= 10; i++ { a.Insert(i); b.Insert(i) }
     for i := 1; i <= 5; i++ { c.Insert(i) }
@@ -101,7 +101,7 @@ func TestGSetEquals(t *testing.T) {
 }
 
 func TestGSetClone(t *testing.T) {
-    a := make(GSet)
+    a := NewGSet()
 
     for i := 1; i <= 10; i++ {a.Insert(i)}
 
@@ -117,9 +117,9 @@ func TestGSetClone(t *testing.T) {
 }
 
 func TestGSetMerge(t *testing.T) {
-    a := make(GSet)
-    b := make(GSet)
-    c := make(GSet)
+    a := NewGSet()
+    b := NewGSet()
+    c := NewGSet()
 
     for i := 1; i <= 10; i++ {
         a.Insert(i)
@@ -138,8 +138,8 @@ func TestGSetMerge(t *testing.T) {
 }
 
 func TestGSetSerialize(t *testing.T) {
-    a := make(GSet)
-    b := make(GSet)
+    a := NewGSet()
+    b := NewGSet()
 
     for i := 0; i < 10; i++ {
         data := make([]byte, 4)

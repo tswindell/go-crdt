@@ -35,8 +35,8 @@ type TwoPhase struct {
 
 func New2P() *TwoPhase {
   s := new(TwoPhase)
-  s.added   = make(GSet)
-  s.removed = make(GSet)
+  s.added   = NewGSet()
+  s.removed = NewGSet()
   return s
 }
 
@@ -87,7 +87,7 @@ func (s *TwoPhase) Iterate() <-chan interface{} {
 
 func (s *TwoPhase) ToSet() Set {
     result := Set{}
-    for i := range s.added {
+    for i := range s.added.Iterate() {
         if !s.removed.Contains(i) { result.Insert(i) }
     }
     return result

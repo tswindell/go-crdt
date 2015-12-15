@@ -30,31 +30,54 @@ import (
     "fmt"
     "hash/crc32"
     "io"
+    "sync"
 )
 
 // Common Go representation of a grow only set.
-type GSet map[interface{}]struct{}
+type GSet struct {
+    sync.RWMutex
+    contents map[interface{}]struct{}
+}
+
+func NewGSet() GSet {
+    return GSet{contents: make(map[interface{}]struct{})}
+}
 
 func (s GSet) Insert(item interface{}) bool {
-    found := s.Contains(item)
-    (s)[item] = struct{}{}
+    s.Lock()
+    defer s.Unlock()
+
+    _, found := s.contents[item]
+    s.contents[item] = struct{}{}
+
     return !found
 }
 
 func (s GSet) Contains(item interface{}) bool {
-    _, found := (s)[item]
+    s.RLock()
+    defer s.RUnlock()
+
+    _, found := s.contents[item]
+
     return found
 }
 
 func (s GSet) Length() int {
-    return len(s)
+    s.RLock()
+    defer s.RUnlock()
+
+    return len(s.contents)
 }
 
 func (s GSet) Equals(other GSet) bool {
-    if len(s) != len(other) {
+    s.RLock()
+    defer s.RUnlock()
+
+    if len(s.contents) != other.Length() {
         return false
     }
-    for i := range s {
+
+    for i := range s.contents {
         if !other.Contains(i) {
             return false
         }
@@ -62,20 +85,20 @@ func (s GSet) Equals(other GSet) bool {
     return true
 }
 
-func (s GSet) Clear() {
-    s = make(GSet)
-}
-
 func (s GSet) Clone() GSet {
-    result := make(GSet)
-    for i := range s {
+    s.RLock()
+    defer s.RUnlock()
+
+    result := NewGSet()
+    for i := range s.contents {
         result.Insert(i)
     }
+
     return result
 }
 
 func (s GSet) Merge(other GSet) {
-    for i := range other {
+    for i := range other.Iterate() {
         s.Insert(i)
     }
 }
@@ -83,28 +106,36 @@ func (s GSet) Merge(other GSet) {
 func (s GSet) Iterate() <-chan interface{} {
     ch := make(chan interface{})
     go func() {
-        for i := range s { ch <- i }
+        s.RLock()
+        defer s.RUnlock()
+
+        for i := range s.contents { ch <- i }
+
         close(ch)
     }()
     return ch
 }
 
 func (s GSet) ToSlice() []interface{} {
-    result := make([]interface{}, 0, len(s))
-    for i := range s {
-        result = append(result, i)
-    }
+    s.RLock()
+    defer s.RUnlock()
+
+    result := make([]interface{}, 0, len(s.contents))
+    for i := range s.contents { result = append(result, i) }
+
     return result
 }
 
 var GSET_HEADER_MAGIC = []byte{'c', 'r', 'd', 't', ':', 'g', 's', 'e', 't', 0x00}
 
 func (s GSet) Serialize(buff *bytes.Buffer) error {
+    s.RLock()
+    defer s.RUnlock()
+
     buff.Write(GSET_HEADER_MAGIC)
+    binary.Write(buff, binary.LittleEndian, uint32(len(s.contents)))
 
-    binary.Write(buff, binary.LittleEndian, uint32(s.Length()))
-
-    for i := range s.Iterate() {
+    for i := range s.contents {
         data, e := base64.StdEncoding.DecodeString(i.(string))
         if e != nil { return nil }
 
