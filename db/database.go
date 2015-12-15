@@ -33,9 +33,12 @@ import (
 )
 
 var (
-    E_INVALID_TYPE          = fmt.Errorf("crdt:invalid-resource-type")
     E_UNKNOWN_TYPE          = fmt.Errorf("crdt:unknown-resource-type")
     E_UNKNOWN_RESOURCE      = fmt.Errorf("crdt:unknown-resource-id")
+    E_UNKNOWN_REFERENCE     = fmt.Errorf("crdt:unknown-reference-id")
+    E_UNKNOWN_STORAGE       = fmt.Errorf("crdt:unknown-storage-type")
+    E_UNKNOWN_CRYPTO        = fmt.Errorf("crdt:unknown-crypto-method")
+    E_INVALID_TYPE          = fmt.Errorf("crdt:invalid-resource-type")
     E_INVALID_RESOURCE      = fmt.Errorf("crdt:invalid-resource-id")
     E_INVALID_KEY           = fmt.Errorf("crdt:invalid-resource-key")
     E_INVALID_REFERENCE     = fmt.Errorf("crdt:invalid-reference")
@@ -220,11 +223,11 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
     // TODO: Replace with actual memcache "store" type.
     if storageId != "tmpfs" {
         _, ok = d.stores[storageId]
-        if !ok { return nil, E_INVALID_STORAGE }
+        if !ok { return nil, E_UNKNOWN_STORAGE }
     }
 
     crypto, ok := d.crypto[cryptoId]
-    if !ok { return nil, E_INVALID_CRYPTO }
+    if !ok { return nil, E_UNKNOWN_CRYPTO }
 
     resourceId  := ResourceId(storageId + "://" + GenerateUUID())
     resourceKey := crypto.GenerateKey()
@@ -255,7 +258,7 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
 
 // The Detach() database method removes a reference to a resource in the database.
 func (d *Database) Detach(referenceId ReferenceId) error {
-    if _, ok := d.references[referenceId]; !ok { return E_INVALID_REFERENCE }
+    if _, ok := d.references[referenceId]; !ok { return E_UNKNOWN_REFERENCE }
     delete(d.references, referenceId)
     return nil
 }
@@ -264,7 +267,7 @@ func (d *Database) Detach(referenceId ReferenceId) error {
 // storage.
 func (d *Database) Commit(referenceId ReferenceId) error {
     resource, ok := d.references[referenceId]
-    if !ok { return E_INVALID_REFERENCE }
+    if !ok { return E_UNKNOWN_REFERENCE }
 
     storage, ok := d.stores[resource.Id().GetStorageId()]
     if !ok { return E_INVALID_STORAGE }
@@ -288,7 +291,7 @@ func (d *Database) Commit(referenceId ReferenceId) error {
 // The Restore() database method restores a resource from persistent storage.
 func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Resource, error) {
     storage, ok := d.stores[resourceId.GetStorageId()]
-    if !ok { return nil, E_INVALID_RESOURCE }
+    if !ok { return nil, E_UNKNOWN_RESOURCE }
 
     crypto, ok := d.crypto[resourceKey.TypeId()]
     if !ok { return nil, E_INVALID_KEY }

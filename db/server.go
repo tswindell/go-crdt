@@ -130,8 +130,7 @@ func (d *Server) Create(ctx context.Context, m *pb.CreateRequest) (*pb.CreateRes
                                      m.StorageId,
                                      m.CryptoId)
     if e != nil {
-        status.Success = false
-        status.ErrorType = e.Error()
+        return &pb.CreateResponse{Status: &pb.Status{Success: false, ErrorType: e.Error()}}, nil
     }
 
     LogInfo("CreateResponse: success=%v error=%s", status.Success, status.ErrorType)

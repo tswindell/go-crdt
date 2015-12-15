@@ -237,11 +237,11 @@ func Test_Database_Create_Invalid(t *testing.T) {
 
     _, e = d.Create(ResourceType("crdt:gset"), "invalid", "aes-256-cbc")
     if e == nil { t.Error("Invalid resource creation returned no error!") }
-    if e != E_INVALID_STORAGE { t.Errorf("Incorrect error returned for invalid storage: (%v)", e) }
+    if e != E_UNKNOWN_STORAGE { t.Errorf("Incorrect error returned for invalid storage: (%v)", e) }
 
     _, e = d.Create(ResourceType("crdt:gset"), "file", "invalid")
     if e == nil { t.Error("Invalid resource creation returned no error!") }
-    if e != E_INVALID_CRYPTO { t.Errorf("Incorrect error returned for invalid crypto: (%v)", e ) }
+    if e != E_UNKNOWN_CRYPTO { t.Errorf("Incorrect error returned for invalid crypto: (%v)", e ) }
 }
 
 func Test_Database_Attach(t *testing.T) {
@@ -298,7 +298,7 @@ func Test_Database_Attach_Invalid(t *testing.T) {
 
     _, e = d.Attach(ResourceId(""), ResourceKey(""))
     if e == nil { t.Error("Invalid attach call returned no error!") }
-    if e != E_INVALID_RESOURCE { t.Errorf("Incorrect error returned for invalid resource: %v", e) }
+    if e != E_UNKNOWN_RESOURCE { t.Errorf("Incorrect error returned for invalid resource: %v", e) }
 
     _, e = d.Attach(resource.Id(), ResourceKey(""))
     if e == nil { t.Error("Invalid attach call returned no error!") }
@@ -359,7 +359,7 @@ func Test_Database_Detach_Invalid(t *testing.T) {
 
     e = d.Detach(ReferenceId("invalid"))
     if e == nil { t.Error("Invalid detach returned no error!") }
-    if e != E_INVALID_REFERENCE { t.Errorf("Expected invalid reference, got: %v", e) }
+    if e != E_UNKNOWN_REFERENCE { t.Errorf("Expected invalid reference, got: %v", e) }
 }
 
 func Test_Database_Commit(t *testing.T) {

@@ -42,11 +42,13 @@ type Client struct {
     connection *grpc.ClientConn
 }
 
+// Returns new Client instance
 func NewClient() *Client {
     d := new(Client)
     return d
 }
 
+// The ConnectToHost instance method
 func (d *Client) ConnectToHost(hostport string) error {
     conn, e := grpc.Dial(hostport, grpc.WithInsecure())
     if e != nil { return e }
@@ -64,6 +66,7 @@ func (d *Client) ConnectToHost(hostport string) error {
     return nil
 }
 
+// The Close instance method
 func (d *Client) Close() {
     if d.connection == nil { return }
     d.connection.Close()
@@ -112,6 +115,7 @@ func (d *Client) Detach(referenceId ReferenceId) error {
     return nil
 }
 
+// The Commit client request method
 func (d *Client) Commit(referenceId ReferenceId) error {
     r, e := d.CRDTClient.Commit(context.Background(),
                                 &pb.CommitRequest{
