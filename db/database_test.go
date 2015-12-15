@@ -97,7 +97,7 @@ func Test_NewResourceKey_Invalid(t *testing.T) {
     }
 }
 
-func Test_NewDatabase(t *testing.T) {
+func Test_NewDatabase_InitProcess(t *testing.T) {
     d := NewDatabase()
 
     if len(d.SupportedStorageTypes()) != 0 {
@@ -112,11 +112,11 @@ func Test_NewDatabase(t *testing.T) {
         t.Error("Empty supported crypto methods check failed.")
     }
 
-    if _, _, e := d.Create(ResourceType(""), "", ""); e != E_INVALID_TYPE {
+    if _, e := d.Create(ResourceType(""), "", ""); e != E_INVALID_TYPE {
         t.Error("Should not be able to make resources with no type!")
     }
 
-    if _, _, e := d.Create(ResourceType("unknown"), "", ""); e != E_UNKNOWN_TYPE {
+    if _, e := d.Create(ResourceType("unknown"), "", ""); e != E_UNKNOWN_TYPE {
         t.Error("Should not be able to make resources with unknown type!")
     }
 
@@ -182,5 +182,227 @@ func Test_NewDatabase(t *testing.T) {
     if e := d.RegisterCryptoMethod(aes256cbc); e == nil {
         t.Error("We should not be able to add resource factories with same type!")
     }
+}
+
+func Test_Database_Create(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create new resource: %v", e) }
+    if !resource.Id().IsValid() { t.Error("New resources' Id is not valid!") }
+    if !resource.Key().IsValid() { t.Error("New resources' Key is not valid!") }
+    if !resource.TypeId().IsValid() { t.Error("New resources' TypeId is not valid!") }
+
+    if resource.TypeId() != ResourceType("crdt:gset") {
+        t.Errorf("New resources' TypeId value incorrect: %s", resource.TypeId())
+    }
+}
+
+func Test_Database_Create_Invalid(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    _, e = d.Create(ResourceType("invalid"), "file", "aes-256-cbc")
+    if e == nil { t.Error("Invalid resource creation returned no error!") }
+    if e != E_UNKNOWN_TYPE { t.Errorf("Incorrect error returned for invalid type: (%v)", e) }
+
+    _, e = d.Create(ResourceType("crdt:gset"), "invalid", "aes-256-cbc")
+    if e == nil { t.Error("Invalid resource creation returned no error!") }
+    if e != E_INVALID_STORAGE { t.Errorf("Incorrect error returned for invalid storage: (%v)", e) }
+
+    _, e = d.Create(ResourceType("crdt:gset"), "file", "invalid")
+    if e == nil { t.Error("Invalid resource creation returned no error!") }
+    if e != E_INVALID_CRYPTO { t.Errorf("Incorrect error returned for invalid crypto: (%v)", e ) }
+}
+
+func Test_Database_Attach(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create resource: %v", e) }
+
+    reference, e := d.Attach(resource.Id(), resource.Key())
+    if e != nil { t.Errorf("Failed to attach resource: %v", e) }
+
+    if !reference.IsValid() { t.Error("Got invalid reference!") }
+
+    resourceId, e := d.Resolve(reference)
+    if e != nil { t.Errorf("Failed to resolve reference: %v", e) }
+    if resourceId != resource.Id() { t.Error("ResourceId check failed!") }
+}
+
+func Test_Database_Attach_Invalid(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create resource: %v", e) }
+
+    _, e = d.Attach(ResourceId(""), ResourceKey(""))
+    if e == nil { t.Error("Invalid attach call returned no error!") }
+    if e != E_INVALID_RESOURCE { t.Errorf("Incorrect error returned for invalid resource: %v", e) }
+
+    _, e = d.Attach(resource.Id(), ResourceKey(""))
+    if e == nil { t.Error("Invalid attach call returned no error!") }
+    if e != E_INVALID_KEY { t.Errorf("Incorrect error returned for invalid key: %v", e) }
+}
+
+func Test_Database_Detach(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create resource: %v", e) }
+
+    reference, e := d.Attach(resource.Id(), resource.Key())
+    if e != nil { t.Errorf("Failed to attach resource: %v", e) }
+
+    e = d.Detach(reference)
+    if e != nil { t.Error("Resource detach failed") }
+}
+
+func Test_Database_Detach_Invalid(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create resource: %v", e) }
+
+    _, e = d.Attach(resource.Id(), resource.Key())
+    if e != nil { t.Errorf("Failed to attach resource: %v", e) }
+
+    e = d.Detach(ReferenceId("invalid"))
+    if e == nil { t.Error("Invalid detach returned no error!") }
+    if e != E_INVALID_REFERENCE { t.Errorf("Expected invalid reference, got: %v", e) }
+}
+
+func Test_Database_Commit(t *testing.T) {
+    d := NewDatabase()
+
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    aes, e := NewAESCryptoMethod(AES_256_KEY_SIZE)
+    if e != nil { t.Errorf("Failed to create crypto: %v", e) }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto: %v", e)
+    }
+
+    resource, e := d.Create(ResourceType("crdt:gset"), "file", "aes-256-cbc")
+    if e != nil { t.Errorf("Failed to create resource: %v", e) }
+
+    reference, e := d.Attach(resource.Id(), resource.Key())
+    if e != nil { t.Errorf("Failed to attach resource: %v", e) }
+
+    e = d.Commit(reference)
+    if e != nil { t.Errorf("Failed to commit resource: %v", e) }
+
+    d = NewDatabase()
+    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+        t.Errorf("Failed to register type: %v", e)
+    }
+
+    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+        t.Errorf("Failed to register storage: %v", e)
+    }
+
+    if e := d.RegisterCryptoMethod(aes); e != nil {
+        t.Errorf("Failed to register crypto method: %v", e)
+    }
+
+    reference, e = d.Attach(resource.Id(), resource.Key())
+    if e != nil { t.Errorf("Failed to attach resource: %v", e) }
 }
 

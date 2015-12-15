@@ -36,6 +36,7 @@ var (
     E_INVALID_TYPE          = fmt.Errorf("crdt:invalid-resource-type")
     E_UNKNOWN_TYPE          = fmt.Errorf("crdt:unknown-resource-type")
     E_UNKNOWN_RESOURCE      = fmt.Errorf("crdt:unknown-resource-id")
+    E_INVALID_RESOURCE      = fmt.Errorf("crdt:invalid-resource-id")
     E_INVALID_KEY           = fmt.Errorf("crdt:invalid-resource-key")
     E_INVALID_REFERENCE     = fmt.Errorf("crdt:invalid-reference")
     E_INVALID_CRYPTO        = fmt.Errorf("crdt:invalid-crypto-id")
@@ -67,6 +68,10 @@ func (d ResourceId) IsValid() bool {
 
 // The ReferenceId type is the representation of a reference to a resource.
 type ReferenceId string
+
+func (d ReferenceId) IsValid() bool {
+    return len(string(d)) > 0
+}
 
 // The ResourceKey type is the representation of a resources' encryption key.
 type ResourceKey string
@@ -206,20 +211,20 @@ func (d *Database) StoreAll() error {
 }
 
 // The Create() database method creates a new resource from the specified parameters.
-func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId string) (ResourceId, ResourceKey, error) {
-    if !resourceType.IsValid() { return ResourceId(""), ResourceKey(""), E_INVALID_TYPE }
+func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId string) (Resource, error) {
+    if !resourceType.IsValid() { return nil, E_INVALID_TYPE }
 
     factory, ok := d.datatypes[resourceType]
-    if !ok { return ResourceId(""), ResourceKey(""), E_UNKNOWN_TYPE }
+    if !ok { return nil, E_UNKNOWN_TYPE }
 
     // TODO: Replace with actual memcache "store" type.
     if storageId != "tmpfs" {
         _, ok = d.stores[storageId]
-        if !ok { return ResourceId(""), ResourceKey(""), E_INVALID_STORAGE }
+        if !ok { return nil, E_INVALID_STORAGE }
     }
 
     crypto, ok := d.crypto[cryptoId]
-    if !ok { return ResourceId(""), ResourceKey(""), E_INVALID_CRYPTO }
+    if !ok { return nil, E_INVALID_CRYPTO }
 
     resourceId  := ResourceId(storageId + "://" + GenerateUUID())
     resourceKey := crypto.GenerateKey()
@@ -227,16 +232,16 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
     resource := factory.Create(resourceId, resourceKey)
     d.datastore[resourceId] = resource
 
-    return resourceId, resourceKey, nil
+    return resource, nil
 }
 
 // The Attach() database method obtains a reference to a resource in the database.
 func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (ReferenceId, error) {
     resource, ok := d.datastore[resourceId]
+
     if !ok {
         var e error
         resource, e = d.Restore(resourceId, resourceKey)
-
         if e != nil { return ReferenceId(""), e }
     }
 
@@ -283,10 +288,10 @@ func (d *Database) Commit(referenceId ReferenceId) error {
 // The Restore() database method restores a resource from persistent storage.
 func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Resource, error) {
     storage, ok := d.stores[resourceId.GetStorageId()]
-    if !ok { return nil, E_INVALID_STORAGE }
+    if !ok { return nil, E_INVALID_RESOURCE }
 
     crypto, ok := d.crypto[resourceKey.TypeId()]
-    if !ok { return nil, E_INVALID_CRYPTO }
+    if !ok { return nil, E_INVALID_KEY }
 
     data, e := storage.GetData(resourceId)
     if e != nil { return nil, e }

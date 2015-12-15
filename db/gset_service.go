@@ -237,20 +237,19 @@ func (d *GSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRequest) 
     cryptoId  := resource.Key().TypeId()
     storageId := resource.Id().GetStorageId()
 
-    newResourceId, newResourceKey, e := d.database.Create(d.TypeId(), cryptoId, storageId)
+    newResource, e := d.database.Create(d.TypeId(), cryptoId, storageId)
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},
                }, nil
     }
 
-    newResource, _ := d.resources[newResourceId]
-    newResource.object = resource.object.Clone()
+    newResource.(*GSetResource).object = resource.object.Clone()
 
     return &pb.SetCloneResponse{
                Status: &pb.Status{Success: true},
-               ResourceId: string(newResourceId),
-               ResourceKey: string(newResourceKey),
+               ResourceId: string(newResource.Id()),
+               ResourceKey: string(newResource.Key()),
            }, nil
 }
 
