@@ -67,7 +67,7 @@ func NewAESCryptoMethod(keysize int) (*AESCryptoMethod, error) {
     return d, nil
 }
 
-func (d *AESCryptoMethod) Type() string {
+func (d *AESCryptoMethod) TypeId() string {
     return d.cryptoType
 }
 
@@ -75,7 +75,7 @@ func (d *AESCryptoMethod) GenerateKey() ResourceKey {
     key := make([]byte, d.keysize)
     _, e := rand.Read(key)
     if e != nil { return ResourceKey("") }
-    return NewResourceKey(d.Type(), key)
+    return NewResourceKey(d.TypeId(), key)
 }
 
 // PKCS #7 padding implementation

@@ -42,7 +42,12 @@ func TestAESGenerateKey(t *testing.T) {
 }
 
 func TestAESEncryptionMethod(t *testing.T) {
-    method, _ := NewAESCryptoMethod(32)
+    method, _ := NewAESCryptoMethod(AES_256_KEY_SIZE)
+
+    if method.TypeId() != "aes-256-cbc" {
+        t.Error("Crypto method TypeId is wrong: %s", method.TypeId())
+    }
+
     orig := []byte("Hello, world!")
     key := method.GenerateKey()
 

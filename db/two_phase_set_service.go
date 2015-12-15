@@ -66,7 +66,7 @@ func (d *TwoPhaseSetResource) Key() ResourceKey {
     return d.resourceKey
 }
 
-func (d *TwoPhaseSetResource) Type() ResourceType {
+func (d *TwoPhaseSetResource) TypeId() ResourceType {
     return TWOPHASESET_RESOURCE_TYPE
 }
 
@@ -86,7 +86,7 @@ func NewTwoPhaseSetResourceFactory(db *Database) *TwoPhaseSetResourceFactory {
     return d
 }
 
-func (d *TwoPhaseSetResourceFactory) Type() ResourceType {
+func (d *TwoPhaseSetResourceFactory) TypeId() ResourceType {
     return TWOPHASESET_RESOURCE_TYPE
 }
 
@@ -254,7 +254,7 @@ func (d *TwoPhaseSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRe
     cryptoId := resource.Key().TypeId()
     storageId := resource.Id().GetStorageId()
 
-    newResourceId, newResourceKey, e := d.database.Create(d.Type(), cryptoId, storageId)
+    newResourceId, newResourceKey, e := d.database.Create(d.TypeId(), cryptoId, storageId)
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},

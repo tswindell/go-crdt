@@ -48,7 +48,7 @@ func NewFileStore(basepath string) *FileStore {
     return d
 }
 
-func (d *FileStore) Type() string { return "file" }
+func (d *FileStore) TypeId() string { return "file" }
 
 // The HasResource instance method returns true if this store has a specific resource.
 func (d *FileStore) HasResource(resourceId ResourceId) bool {

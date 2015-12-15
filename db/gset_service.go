@@ -66,7 +66,7 @@ func (d *GSetResource) Key() ResourceKey {
     return d.resourceKey
 }
 
-func (d *GSetResource) Type() ResourceType {
+func (d *GSetResource) TypeId() ResourceType {
     return GSET_RESOURCE_TYPE
 }
 
@@ -86,7 +86,7 @@ func NewGSetResourceFactory(db *Database) *GSetResourceFactory {
     return d
 }
 
-func (d *GSetResourceFactory) Type() ResourceType {
+func (d *GSetResourceFactory) TypeId() ResourceType {
     return GSET_RESOURCE_TYPE
 }
 
@@ -237,7 +237,7 @@ func (d *GSetResourceFactory) Clone(ctx context.Context, m *pb.SetCloneRequest) 
     cryptoId  := resource.Key().TypeId()
     storageId := resource.Id().GetStorageId()
 
-    newResourceId, newResourceKey, e := d.database.Create(d.Type(), cryptoId, storageId)
+    newResourceId, newResourceKey, e := d.database.Create(d.TypeId(), cryptoId, storageId)
     if e != nil {
         return &pb.SetCloneResponse{
                    Status: &pb.Status{Success: false, ErrorType: e.Error()},

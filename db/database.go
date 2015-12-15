@@ -33,6 +33,7 @@ import (
 )
 
 var (
+    E_INVALID_TYPE          = fmt.Errorf("crdt:invalid-resource-type")
     E_UNKNOWN_TYPE          = fmt.Errorf("crdt:unknown-resource-type")
     E_UNKNOWN_RESOURCE      = fmt.Errorf("crdt:unknown-resource-id")
     E_INVALID_KEY           = fmt.Errorf("crdt:invalid-resource-key")
@@ -49,12 +50,19 @@ func NewResourceId(storageId, resourceId string) ResourceId {
     return ResourceId(storageId + ":" + resourceId)
 }
 
+// TODO: Consider renaming GetStorageId
 func (d ResourceId) GetStorageId() string {
     return strings.SplitN(string(d), ":", 2)[0]
 }
 
+// TODO: Consider renaming GetId
 func (d ResourceId) GetId() string {
     return strings.SplitN(string(d), ":", 2)[1]
+}
+
+func (d ResourceId) IsValid() bool {
+    parts := strings.SplitN(string(d), ":", 2)
+    return len(parts[0]) > 0 && len(parts[1]) > 0
 }
 
 // The ReferenceId type is the representation of a reference to a resource.
@@ -79,14 +87,23 @@ func (d ResourceKey) KeyData() []byte {
     return keydata
 }
 
+func (d ResourceKey) IsValid() bool {
+    parts := strings.SplitN(string(d), ":", 2)
+    return len(parts[0]) > 0
+}
+
 // The ResourceType type is the representation of a resources' data type.
 type ResourceType string
+
+func (d ResourceType) IsValid() bool {
+    return len(string(d)) > 0
+}
 
 // The Resource interface defines the API that all resource types must provide.
 type Resource interface {
     Id() ResourceId
     Key() ResourceKey
-    Type() ResourceType
+    TypeId() ResourceType
 
     Serialize(*bytes.Buffer) error
 }
@@ -94,7 +111,7 @@ type Resource interface {
 // The ResourceFactory interface defines the API that a resource type must
 // provide.
 type ResourceFactory interface {
-    Type() ResourceType
+    TypeId() ResourceType
 
     Create(ResourceId, ResourceKey) Resource
     Restore(ResourceId, ResourceKey, *bytes.Buffer) (Resource, error)
@@ -112,7 +129,7 @@ type ReferenceTable map[ReferenceId]Resource
 // The Datastore interface type defines the interface that persistent backing
 // stores must implement.
 type Datastore interface {
-    Type() string
+    TypeId() string
 
     HasResource(ResourceId) bool
 
@@ -123,7 +140,7 @@ type Datastore interface {
 // The CryptoMethod interface type defines the interface that crypto methods
 // must implement.
 type CryptoMethod interface {
-    Type() string
+    TypeId() string
 
     GenerateKey() ResourceKey
 
@@ -154,20 +171,29 @@ func NewDatabase() *Database {
 
 // The RegisterType() function registers a new resource type factory within this
 // instance.
-func (d *Database) RegisterType(factory ResourceFactory) {
-    d.datatypes[factory.Type()] = factory
+func (d *Database) RegisterType(factory ResourceFactory) error {
+    _, ok := d.datatypes[factory.TypeId()]
+    if ok { return fmt.Errorf("Already registered datatype: %s", factory.TypeId()) }
+    d.datatypes[factory.TypeId()] = factory
+    return nil
 }
 
 // The RegisterCryptoMethod() instance method registers a cryptographic plugin
 // with this database.
-func (d *Database) RegisterCryptoMethod(method CryptoMethod) {
-    d.crypto[method.Type()] = method
+func (d *Database) RegisterCryptoMethod(method CryptoMethod) error {
+    _, ok := d.crypto[method.TypeId()]
+    if ok { return fmt.Errorf("Already registered crypto method: %s", method.TypeId()) }
+    d.crypto[method.TypeId()] = method
+    return nil
 }
 
 // The RegisterDatastore() instance method registers a datastore plugin with
 // this database.
-func (d *Database) RegisterDatastore(store Datastore) {
-    d.stores[store.Type()] = store
+func (d *Database) RegisterStorageType(store Datastore) error {
+    _, ok := d.stores[store.TypeId()]
+    if ok { return fmt.Errorf("Already registered storage: %s", store.TypeId()) }
+    d.stores[store.TypeId()] = store
+    return nil
 }
 
 func (d *Database) StoreAll() error {
@@ -181,6 +207,8 @@ func (d *Database) StoreAll() error {
 
 // The Create() database method creates a new resource from the specified parameters.
 func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId string) (ResourceId, ResourceKey, error) {
+    if !resourceType.IsValid() { return ResourceId(""), ResourceKey(""), E_INVALID_TYPE }
+
     factory, ok := d.datatypes[resourceType]
     if !ok { return ResourceId(""), ResourceKey(""), E_UNKNOWN_TYPE }
 
@@ -240,7 +268,7 @@ func (d *Database) Commit(referenceId ReferenceId) error {
     if !ok { return E_INVALID_CRYPTO }
 
     buff := bytes.Buffer{}
-    buff.WriteString(string(resource.Type()))
+    buff.WriteString(string(resource.TypeId()))
     buff.WriteByte(byte(0x00))
     if e := resource.Serialize(&buff); e != nil { return e }
 
