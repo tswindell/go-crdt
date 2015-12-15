@@ -48,6 +48,12 @@ type Server struct {
     database *Database
 }
 
+// Returns host addres server bound to.
+func (d *Server) HostAddr() string {
+    listener := d.listener
+    return (*listener).Addr().String()
+}
+
 // Returns a newly created Server instance.
 func NewServer() (*Server, error) {
     d := new(Server)
@@ -101,7 +107,9 @@ func (d *Server) Listen(hostport string) error {
     LogInfo("Listening on %s:%d\n", hostname, port)
 
     // Start serving requests.
-    return d.service.Serve(*d.listener)
+    go func() { d.service.Serve(*d.listener) }()
+
+    return nil
 }
 
 func __hostport_from_listener(listener *net.Listener) (string, int, error) {
