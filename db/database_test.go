@@ -359,7 +359,7 @@ func Test_Database_Detach_Invalid(t *testing.T) {
 
     e = d.Detach(ReferenceId("invalid"))
     if e == nil { t.Error("Invalid detach returned no error!") }
-    if e != E_UNKNOWN_REFERENCE { t.Errorf("Expected invalid reference, got: %v", e) }
+    if e != E_INVALID_REFERENCE { t.Errorf("Expected invalid reference, got: %v", e) }
 }
 
 func Test_Database_Commit(t *testing.T) {

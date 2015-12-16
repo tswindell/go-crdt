@@ -124,7 +124,7 @@ func Test_Detach(t *testing.T) {
 func Test_Detach_Invalid(t *testing.T) {
     e := c.Detach(ReferenceId("invalid"))
     if e == nil { t.Error("Detach returned no error with invalid reference id") }
-    if e.Error() != E_UNKNOWN_REFERENCE.Error() { t.Errorf("Detach returned incorrect error: %v", e) }
+    if e.Error() != E_INVALID_REFERENCE.Error() { t.Errorf("Detach returned incorrect error: %v", e) }
 }
 
 func Test_Commit(t *testing.T) {
