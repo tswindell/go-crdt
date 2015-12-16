@@ -54,7 +54,7 @@ func NewGSetResource(resourceId ResourceId, resourceKey ResourceKey) *GSetResour
     d := new(GSetResource)
     d.resourceId = resourceId
     d.resourceKey = resourceKey
-    d.object = make(set.GSet)
+    d.object = set.NewGSet()
     return d
 }
 
