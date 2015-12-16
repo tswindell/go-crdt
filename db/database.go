@@ -29,6 +29,7 @@ import (
     "fmt"
     "strings"
 
+    //TODO: Remove
     "code.google.com/p/go-uuid/uuid"
 )
 
@@ -126,23 +127,103 @@ type ResourceFactory interface {
 }
 
 // The ResourceDatastore type
-type ResourceDatastore map[ResourceId]Resource
+type ResourceDatastore ThreadSafeMap
+
+func (d *ResourceDatastore) Add(resource Resource) bool {
+    return ThreadSafeMap(*d).Insert(resource.Id(), resource)
+}
+
+func (d *ResourceDatastore) Get(resourceId ResourceId) Resource {
+    v := ThreadSafeMap(*d).GetValue(resourceId)
+    if v == nil { return nil }
+    return v.(Resource)
+}
 
 // The ResourceTypeRegistry type
-type ResourceTypeRegistry map[ResourceType]ResourceFactory
+type ResourceTypeRegistry ThreadSafeMap
+
+func (d *ResourceTypeRegistry) AddFactory(factory ResourceFactory) bool {
+    return ThreadSafeMap(*d).Insert(factory.TypeId(), factory)
+}
+
+func (d *ResourceTypeRegistry) GetFactory(typeId ResourceType) ResourceFactory {
+    v := ThreadSafeMap(*d).GetValue(typeId)
+    if v == nil { return nil }
+    return v.(ResourceFactory)
+}
+
+func (d *ResourceTypeRegistry) List() []ResourceType {
+    results := make([]ResourceType, 0)
+    for _, v := range ThreadSafeMap(*d).Keys() { results = append(results, v.(ResourceType)) }
+    return results
+}
 
 // The ReferenceTable type
-type ReferenceTable map[ReferenceId]Resource
+type ReferenceTable ThreadSafeMap
+
+func (d *ReferenceTable) Create(resource Resource) ReferenceId {
+    referenceId := ReferenceId(GenerateUUID())
+    ThreadSafeMap(*d).Insert(referenceId, resource.Id())
+    return referenceId
+}
+
+func (d *ReferenceTable) Remove(referenceId ReferenceId) bool {
+    return ThreadSafeMap(*d).Remove(referenceId)
+}
+
+func (d *ReferenceTable) Resolve(referenceId ReferenceId) ResourceId {
+    v := ThreadSafeMap(*d).GetValue(referenceId)
+    if v == nil { return ResourceId("") }
+    return v.(ResourceId)
+}
 
 // The Datastore interface type defines the interface that persistent backing
 // stores must implement.
-type Datastore interface {
+type Storage interface {
     TypeId() string
 
     HasResource(ResourceId) bool
 
     GetData(ResourceId) ([]byte, error)
     SetData(ResourceId, []byte) error
+}
+
+// The StorageDirectory type
+type StorageDirectory ThreadSafeMap
+
+func (d *StorageDirectory) AddStore(store Storage) bool {
+    return ThreadSafeMap(*d).Insert(store.TypeId(), store)
+}
+
+func (d *StorageDirectory) GetStore(storageId string) Storage {
+    v := ThreadSafeMap(*d).GetValue(storageId)
+    if v == nil { return nil }
+    return v.(Storage)
+}
+
+func (d *StorageDirectory) List() []string {
+    results := make([]string, 0)
+    for _, v := range ThreadSafeMap(*d).Keys() { results = append(results, v.(string)) }
+    return results
+}
+
+// The CryptoMethodDirectory type
+type CryptoMethodDirectory ThreadSafeMap
+
+func (d *CryptoMethodDirectory) AddMethod(method CryptoMethod) bool {
+    return ThreadSafeMap(*d).Insert(method.TypeId(), method)
+}
+
+func (d *CryptoMethodDirectory) GetMethod(methodId string) CryptoMethod {
+    v := ThreadSafeMap(*d).GetValue(methodId)
+    if v == nil { return nil }
+    return v.(CryptoMethod)
+}
+
+func (d *CryptoMethodDirectory) List() []string {
+    results := make([]string, 0)
+    for _, v := range ThreadSafeMap(*d).Keys() { results = append(results, v.(string)) }
+    return results
 }
 
 // The CryptoMethod interface type defines the interface that crypto methods
@@ -161,55 +242,39 @@ type Database struct {
     datatypes  ResourceTypeRegistry
     datastore  ResourceDatastore
     references ReferenceTable
-
-    crypto     map[string]CryptoMethod
-    stores     map[string]Datastore
+    crypto     CryptoMethodDirectory
+    storage    StorageDirectory
 }
 
 // The NewDatabase() function returns a newly created database instance.
 func NewDatabase() *Database {
     d := new(Database)
-    d.datatypes  = make(ResourceTypeRegistry)
-    d.datastore  = make(ResourceDatastore)
-    d.references = make(ReferenceTable)
-    d.crypto     = make(map[string]CryptoMethod)
-    d.stores     = make(map[string]Datastore)
+    d.datatypes  = ResourceTypeRegistry(NewThreadSafeMap())
+    d.datastore  = ResourceDatastore(NewThreadSafeMap())
+    d.references = ReferenceTable(NewThreadSafeMap())
+    d.crypto     = CryptoMethodDirectory(NewThreadSafeMap())
+    d.storage    = StorageDirectory(NewThreadSafeMap())
     return d
 }
 
 // The RegisterType() function registers a new resource type factory within this
 // instance.
 func (d *Database) RegisterType(factory ResourceFactory) error {
-    _, ok := d.datatypes[factory.TypeId()]
-    if ok { return fmt.Errorf("Already registered datatype: %s", factory.TypeId()) }
-    d.datatypes[factory.TypeId()] = factory
+    if !d.datatypes.AddFactory(factory) { return fmt.Errorf("Factory already registered: %s", factory.TypeId()) }
     return nil
 }
 
 // The RegisterCryptoMethod() instance method registers a cryptographic plugin
 // with this database.
 func (d *Database) RegisterCryptoMethod(method CryptoMethod) error {
-    _, ok := d.crypto[method.TypeId()]
-    if ok { return fmt.Errorf("Already registered crypto method: %s", method.TypeId()) }
-    d.crypto[method.TypeId()] = method
+    if !d.crypto.AddMethod(method) { return fmt.Errorf("Already registered crypto method: %s", method.TypeId()) }
     return nil
 }
 
 // The RegisterDatastore() instance method registers a datastore plugin with
 // this database.
-func (d *Database) RegisterStorageType(store Datastore) error {
-    _, ok := d.stores[store.TypeId()]
-    if ok { return fmt.Errorf("Already registered storage: %s", store.TypeId()) }
-    d.stores[store.TypeId()] = store
-    return nil
-}
-
-func (d *Database) StoreAll() error {
-    for k, v := range d.datastore {
-        k.GetStorageId()
-        v.Key()
-    }
-
+func (d *Database) RegisterStorageType(store Storage) error {
+    if !d.storage.AddStore(store) { return fmt.Errorf("Already registered storage: %s", store.TypeId()) }
     return nil
 }
 
@@ -217,32 +282,28 @@ func (d *Database) StoreAll() error {
 func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId string) (Resource, error) {
     if !resourceType.IsValid() { return nil, E_INVALID_TYPE }
 
-    factory, ok := d.datatypes[resourceType]
-    if !ok { return nil, E_UNKNOWN_TYPE }
+    factory := d.datatypes.GetFactory(resourceType)
+    if factory == nil { return nil, E_UNKNOWN_TYPE }
 
-    // TODO: Replace with actual memcache "store" type.
-    if storageId != "tmpfs" {
-        _, ok = d.stores[storageId]
-        if !ok { return nil, E_UNKNOWN_STORAGE }
-    }
+    storage := d.storage.GetStore(storageId)
+    if storage == nil { return nil, E_UNKNOWN_STORAGE }
 
-    crypto, ok := d.crypto[cryptoId]
-    if !ok { return nil, E_UNKNOWN_CRYPTO }
+    crypto := d.crypto.GetMethod(cryptoId)
+    if crypto == nil { return nil, E_UNKNOWN_CRYPTO }
 
     resourceId  := ResourceId(storageId + "://" + GenerateUUID())
     resourceKey := crypto.GenerateKey()
 
     resource := factory.Create(resourceId, resourceKey)
-    d.datastore[resourceId] = resource
-
+    d.datastore.Add(resource)
     return resource, nil
 }
 
 // The Attach() database method obtains a reference to a resource in the database.
 func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (ReferenceId, error) {
-    resource, ok := d.datastore[resourceId]
+    resource := d.datastore.Get(resourceId)
 
-    if !ok {
+    if resource == nil {
         var e error
         resource, e = d.Restore(resourceId, resourceKey)
         if e != nil { return ReferenceId(""), e }
@@ -250,30 +311,29 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
 
     if resource.Key() != resourceKey { return ReferenceId(""), E_INVALID_KEY }
 
-    referenceId := ReferenceId(GenerateUUID())
-    d.references[referenceId] = resource
-
-    return referenceId, nil
+    return d.references.Create(resource), nil
 }
 
 // The Detach() database method removes a reference to a resource in the database.
 func (d *Database) Detach(referenceId ReferenceId) error {
-    if _, ok := d.references[referenceId]; !ok { return E_UNKNOWN_REFERENCE }
-    delete(d.references, referenceId)
+    if !d.references.Remove(referenceId) { return E_INVALID_REFERENCE }
     return nil
 }
 
 // The Commit() database method commits a resource by reference to persistent
 // storage.
 func (d *Database) Commit(referenceId ReferenceId) error {
-    resource, ok := d.references[referenceId]
-    if !ok { return E_UNKNOWN_REFERENCE }
+    resourceId := d.references.Resolve(referenceId)
+    if !resourceId.IsValid() { return E_UNKNOWN_REFERENCE }
 
-    storage, ok := d.stores[resource.Id().GetStorageId()]
-    if !ok { return E_INVALID_STORAGE }
+    resource := d.datastore.Get(resourceId)
+    if resource == nil { return E_INVALID_RESOURCE }
 
-    crypto, ok := d.crypto[resource.Key().TypeId()]
-    if !ok { return E_INVALID_CRYPTO }
+    storage := d.storage.GetStore(resourceId.GetStorageId())
+    if storage == nil { return E_INVALID_STORAGE }
+
+    crypto := d.crypto.GetMethod(resource.Key().TypeId())
+    if crypto == nil { return E_INVALID_CRYPTO }
 
     buff := bytes.Buffer{}
     buff.WriteString(string(resource.TypeId()))
@@ -290,11 +350,11 @@ func (d *Database) Commit(referenceId ReferenceId) error {
 
 // The Restore() database method restores a resource from persistent storage.
 func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Resource, error) {
-    storage, ok := d.stores[resourceId.GetStorageId()]
-    if !ok { return nil, E_UNKNOWN_RESOURCE }
+    storage := d.storage.GetStore(resourceId.GetStorageId())
+    if storage == nil { return nil, E_UNKNOWN_RESOURCE }
 
-    crypto, ok := d.crypto[resourceKey.TypeId()]
-    if !ok { return nil, E_INVALID_KEY }
+    crypto := d.crypto.GetMethod(resourceKey.TypeId())
+    if crypto == nil { return nil, E_INVALID_KEY }
 
     data, e := storage.GetData(resourceId)
     if e != nil { return nil, e }
@@ -307,8 +367,8 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
     if e != nil { return nil, e }
 
     resourceType := ResourceType(typeString[:len(typeString) - 1])
-    factory, ok := d.datatypes[resourceType]
-    if !ok { return nil, E_UNKNOWN_TYPE }
+    factory := d.datatypes.GetFactory(resourceType)
+    if factory == nil { return nil, E_UNKNOWN_TYPE }
 
     resource, e := factory.Restore(resourceId, resourceKey, buff)
     if e != nil { return nil, e }
@@ -319,59 +379,47 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
 // The SupportedTypes() database method returns a list of types that this
 // database instance provides.
 func (d *Database) SupportedTypes() []ResourceType {
-    results := make([]ResourceType, 0)
-    for k, _ := range d.datatypes {
-        results = append(results, k)
-    }
-    return results
+    return d.datatypes.List()
 }
 
 // The IsSupportedType() method returns whether a specific ResourceType is
 // supported in this database.
 func (d *Database) IsSupportedType(resourceType ResourceType) bool {
-    _, ok := d.datatypes[resourceType]
-    return ok
+    factory := d.datatypes.GetFactory(resourceType)
+    return factory != nil
 }
 
 // The SupportedCryptoMethods() method returns a list of registered crypto
 // methods supported in this database.
 func (d *Database) SupportedCryptoMethods() []string {
-    results := make([]string, 0)
-    for k, _ := range d.crypto {
-        results = append(results, k)
-    }
-    return results
+    return d.crypto.List()
 }
 
 // The IsSupportedCryptoMethod() method returns whether the supplied crypto
 // method is supported in this database.
-func (d *Database) IsSupportedCryptoMethod(crypto string) bool {
-    _, ok := d.crypto[crypto]
-    return ok
+func (d *Database) IsSupportedCryptoMethod(cryptoId string) bool {
+    crypto := d.crypto.GetMethod(cryptoId)
+    return crypto != nil
 }
 
 // The SupportedDatastores() method returns a list of registered storage
 // backends.
 func (d *Database) SupportedStorageTypes() []string {
-    results := make([]string, 0)
-    for k, _ := range d.stores {
-        results = append(results, k)
-    }
-    return results
+    return d.storage.List()
 }
 
 // The IsSupportedDatastore() method returns true if the supplied storage
 // backend is supported in this database.
 func (d *Database) IsSupportedStorageType(store string) bool {
-    _, ok := d.stores[store]
-    return ok
+    storage := d.storage.GetStore(store)
+    return storage != nil
 }
 
-// The Resolve() database method resolves a ReferenceId to a ResourceId.
+// The Resolve() instance method
 func (d *Database) Resolve(referenceId ReferenceId) (ResourceId, error) {
-    res, ok := d.references[referenceId]
-    if !ok { return ResourceId(""), E_INVALID_REFERENCE }
-    return res.Id(), nil
+    resourceId := d.references.Resolve(referenceId)
+    if !resourceId.IsValid() { return resourceId, E_INVALID_REFERENCE }
+    return resourceId, nil
 }
 
 // The GenerateUUID() function
