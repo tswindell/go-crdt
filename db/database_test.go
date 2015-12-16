@@ -270,9 +270,9 @@ func Test_Database_Attach(t *testing.T) {
 
     if !reference.IsValid() { t.Error("Got invalid reference!") }
 
-    resourceId, e := d.Resolve(reference)
+    qResource, e := d.Resolve(reference)
     if e != nil { t.Errorf("Failed to resolve reference: %v", e) }
-    if resourceId != resource.Id() { t.Error("ResourceId check failed!") }
+    if qResource.Id() != resource.Id() { t.Error("ResourceId check failed!") }
 }
 
 func Test_Database_Attach_Invalid(t *testing.T) {

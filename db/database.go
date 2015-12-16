@@ -115,6 +115,7 @@ type Resource interface {
     TypeId() ResourceType
 
     Serialize(*bytes.Buffer) error
+    Deserialize(*bytes.Buffer) error
 }
 
 // The ResourceFactory interface defines the API that a resource type must
@@ -416,10 +417,12 @@ func (d *Database) IsSupportedStorageType(store string) bool {
 }
 
 // The Resolve() instance method
-func (d *Database) Resolve(referenceId ReferenceId) (ResourceId, error) {
+func (d *Database) Resolve(referenceId ReferenceId) (Resource, error) {
     resourceId := d.references.Resolve(referenceId)
-    if !resourceId.IsValid() { return resourceId, E_INVALID_REFERENCE }
-    return resourceId, nil
+    if !resourceId.IsValid() { return nil, E_INVALID_REFERENCE }
+
+    resource := d.datastore.Get(resourceId)
+    return resource, nil
 }
 
 // The GenerateUUID() function
