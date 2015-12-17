@@ -20,6 +20,15 @@ service CRDT {
     // Commit resource to persistent storage.
     rpc Commit(CommitRequest) returns (CommitResponse) {}
 
+    // Test Equality of two resources by reference.
+    rpc Equals(EqualsRequest) returns (EqualsResponse) {}
+
+    // Merge two references with matching datatype.
+    rpc Merge(MergeRequest) returns (MergeResponse) {}
+
+    // Clone a reference into a new resource.
+    rpc Clone(CloneRequest) returns (CloneResponse) {}
+
     // Returns a list of supported data types.
     rpc SupportedTypes(EmptyMessage) returns (SupportedTypesResponse) {}
     rpc IsSupportedType(TypeMessage) returns (BooleanResponse) {}
@@ -91,6 +100,35 @@ message CommitResponse {
     Status status = 1;
 }
 
+message EqualsRequest {
+    string referenceId = 1;
+    string otherReferenceId = 2;
+}
+
+message EqualsResponse {
+    Status status = 1;
+    bool   result = 2;
+}
+
+message MergeRequest {
+    string referenceId = 1;
+    string otherReferenceId = 2;
+}
+
+message MergeResponse {
+    Status status = 1;
+}
+
+message CloneRequest {
+    string referenceId = 1;
+}
+
+message CloneResponse {
+    Status status = 1;
+    string resourceId = 2; // New ResourceId
+    string resourceKey = 3;
+}
+
 message SupportedTypesResponse {
     repeated TypeMessage types = 1;
 }
@@ -111,9 +149,6 @@ service GrowOnlySet {
     rpc Insert(SetInsertRequest) returns (SetInsertResponse) {}
     rpc Length(SetLengthRequest) returns (SetLengthResponse) {}
     rpc Contains(SetContainsRequest) returns (SetContainsResponse) {}
-    rpc Equals(SetEqualsRequest) returns (SetEqualsResponse) {}
-    rpc Merge(SetMergeRequest) returns (SetMergeResponse) {}
-    rpc Clone(SetCloneRequest) returns (SetCloneResponse) {}
 }
 
 service TwoPhaseSet {
@@ -122,9 +157,6 @@ service TwoPhaseSet {
     rpc Remove(SetRemoveRequest) returns (SetRemoveResponse) {}
     rpc Length(SetLengthRequest) returns (SetLengthResponse) {}
     rpc Contains(SetContainsRequest) returns (SetContainsResponse) {}
-    rpc Equals(SetEqualsRequest) returns (SetEqualsResponse) {}
-    rpc Merge(SetMergeRequest) returns (SetMergeResponse) {}
-    rpc Clone(SetCloneRequest) returns (SetCloneResponse) {}
 }
 
 message SetListRequest {
@@ -163,34 +195,5 @@ message SetContainsRequest {
 message SetContainsResponse {
     Status status = 1;
     bool   result = 2;
-}
-
-message SetEqualsRequest {
-    string referenceId = 1;
-    string otherReferenceId = 2;
-}
-
-message SetEqualsResponse {
-    Status status = 1;
-    bool   result = 2;
-}
-
-message SetMergeRequest {
-    string referenceId = 1;
-    string otherReferenceId = 2;
-}
-
-message SetMergeResponse {
-    Status status = 1;
-}
-
-message SetCloneRequest {
-    string referenceId = 1;
-}
-
-message SetCloneResponse {
-    Status status = 1;
-    string resourceId = 2; // New ResourceId
-    string resourceKey = 3;
 }
 

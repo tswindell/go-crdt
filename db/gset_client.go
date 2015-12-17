@@ -98,35 +98,3 @@ func (d *GSetClient) Contains(referenceId ReferenceId, object []byte) (bool, err
     return r.Result, nil
 }
 
-func (d *GSetClient) Equals(referenceId, otherReferenceId ReferenceId) (bool, error) {
-    r, e := d.GrowOnlySetClient.Equals(context.Background(),
-                                       &pb.SetEqualsRequest{
-                                           ReferenceId: string(referenceId),
-                                           OtherReferenceId: string(otherReferenceId),
-                                       })
-    if e != nil { return false, e }
-    if !r.Status.Success { return false, fmt.Errorf(r.Status.ErrorType) }
-    return r.Result, nil
-}
-
-func (d *GSetClient) Merge(referenceId, otherReferenceId ReferenceId) error {
-    r, e := d.GrowOnlySetClient.Merge(context.Background(),
-                                       &pb.SetMergeRequest{
-                                           ReferenceId: string(referenceId),
-                                           OtherReferenceId: string(otherReferenceId),
-                                       })
-    if e != nil { return e }
-    if !r.Status.Success { return fmt.Errorf(r.Status.ErrorType) }
-    return nil
-}
-
-func (d *GSetClient) Clone(referenceId ReferenceId) (ResourceId, ResourceKey, error) {
-    r, e := d.GrowOnlySetClient.Clone(context.Background(),
-                                      &pb.SetCloneRequest{
-                                          ReferenceId: string(referenceId),
-                                      })
-    if e != nil { return ResourceId(""), ResourceKey(""), e }
-    if !r.Status.Success { return ResourceId(""), ResourceKey(""), fmt.Errorf(r.Status.ErrorType) }
-    return ResourceId(r.ResourceId), ResourceKey(r.ResourceKey), nil
-}
-

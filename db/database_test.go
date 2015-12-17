@@ -125,7 +125,7 @@ func Test_NewDatabase_InitProcess(t *testing.T) {
         t.Error("IsSupportedStorageType check failed, should not be true!")
     }
 
-    if e := d.RegisterStorageType(fstore); e != nil {
+    if e := d.RegisterStorage(fstore); e != nil {
         t.Errorf("Failed to register storage type: %v", e)
     }
 
@@ -137,11 +137,11 @@ func Test_NewDatabase_InitProcess(t *testing.T) {
         t.Error("IsSupportedStorageType check failed, should not be false!")
     }
 
-    if e := d.RegisterStorageType(NewFileStore("")); e == nil {
+    if e := d.RegisterStorage(NewFileStore("")); e == nil {
         t.Error("We should not be able to add stores with same type.")
     }
 
-    gset := NewGSetResourceFactory(d)
+    gset := NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)
     if d.IsSupportedType(gset.TypeId()) {
         t.Error("IsSupportedResourceType check failed, should not be true!")
     }
@@ -187,11 +187,11 @@ func Test_NewDatabase_InitProcess(t *testing.T) {
 func Test_Database_Create(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -206,21 +206,21 @@ func Test_Database_Create(t *testing.T) {
     if e != nil { t.Errorf("Failed to create new resource: %v", e) }
     if !resource.Id().IsValid() { t.Error("New resources' Id is not valid!") }
     if !resource.Key().IsValid() { t.Error("New resources' Key is not valid!") }
-    if !resource.TypeId().IsValid() { t.Error("New resources' TypeId is not valid!") }
+    if !resource.Type().IsValid() { t.Error("New resources' TypeId is not valid!") }
 
-    if resource.TypeId() != ResourceType("crdt:gset") {
-        t.Errorf("New resources' TypeId value incorrect: %s", resource.TypeId())
+    if resource.Type() != ResourceType("crdt:gset") {
+        t.Errorf("New resources' TypeId value incorrect: %s", resource.Type())
     }
 }
 
 func Test_Database_Create_Invalid(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -247,11 +247,11 @@ func Test_Database_Create_Invalid(t *testing.T) {
 func Test_Database_Attach(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -278,11 +278,11 @@ func Test_Database_Attach(t *testing.T) {
 func Test_Database_Attach_Invalid(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -308,11 +308,11 @@ func Test_Database_Attach_Invalid(t *testing.T) {
 func Test_Database_Detach(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -336,11 +336,11 @@ func Test_Database_Detach(t *testing.T) {
 func Test_Database_Detach_Invalid(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -365,11 +365,11 @@ func Test_Database_Detach_Invalid(t *testing.T) {
 func Test_Database_Commit(t *testing.T) {
     d := NewDatabase()
 
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 
@@ -390,11 +390,11 @@ func Test_Database_Commit(t *testing.T) {
     if e != nil { t.Errorf("Failed to commit resource: %v", e) }
 
     d = NewDatabase()
-    if e := d.RegisterType(NewGSetResourceFactory(d)); e != nil {
+    if e := d.RegisterType(NewSetResourceType(d, GROWONLYSET_RESOURCE_TYPE, NewGSetResource)); e != nil {
         t.Errorf("Failed to register type: %v", e)
     }
 
-    if e := d.RegisterStorageType(NewFileStore("/tmp/crdb-test")); e != nil {
+    if e := d.RegisterStorage(NewFileStore("/tmp/crdb-test")); e != nil {
         t.Errorf("Failed to register storage: %v", e)
     }
 

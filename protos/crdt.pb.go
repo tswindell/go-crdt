@@ -22,6 +22,12 @@ It has these top-level messages:
 	DetachResponse
 	CommitRequest
 	CommitResponse
+	EqualsRequest
+	EqualsResponse
+	MergeRequest
+	MergeResponse
+	CloneRequest
+	CloneResponse
 	SupportedTypesResponse
 	SupportedStorageTypesResponse
 	SupportedCryptoMethodsResponse
@@ -34,12 +40,6 @@ It has these top-level messages:
 	SetLengthResponse
 	SetContainsRequest
 	SetContainsResponse
-	SetEqualsRequest
-	SetEqualsResponse
-	SetMergeRequest
-	SetMergeResponse
-	SetCloneRequest
-	SetCloneResponse
 */
 package crdt
 
@@ -190,6 +190,80 @@ func (m *CommitResponse) String() string { return proto.CompactTextString(m) }
 func (*CommitResponse) ProtoMessage()    {}
 
 func (m *CommitResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type EqualsRequest struct {
+	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
+}
+
+func (m *EqualsRequest) Reset()         { *m = EqualsRequest{} }
+func (m *EqualsRequest) String() string { return proto.CompactTextString(m) }
+func (*EqualsRequest) ProtoMessage()    {}
+
+type EqualsResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	Result bool    `protobuf:"varint,2,opt,name=result" json:"result,omitempty"`
+}
+
+func (m *EqualsResponse) Reset()         { *m = EqualsResponse{} }
+func (m *EqualsResponse) String() string { return proto.CompactTextString(m) }
+func (*EqualsResponse) ProtoMessage()    {}
+
+func (m *EqualsResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type MergeRequest struct {
+	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
+}
+
+func (m *MergeRequest) Reset()         { *m = MergeRequest{} }
+func (m *MergeRequest) String() string { return proto.CompactTextString(m) }
+func (*MergeRequest) ProtoMessage()    {}
+
+type MergeResponse struct {
+	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *MergeResponse) Reset()         { *m = MergeResponse{} }
+func (m *MergeResponse) String() string { return proto.CompactTextString(m) }
+func (*MergeResponse) ProtoMessage()    {}
+
+func (m *MergeResponse) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type CloneRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *CloneRequest) Reset()         { *m = CloneRequest{} }
+func (m *CloneRequest) String() string { return proto.CompactTextString(m) }
+func (*CloneRequest) ProtoMessage()    {}
+
+type CloneResponse struct {
+	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
+	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
+	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
+}
+
+func (m *CloneResponse) Reset()         { *m = CloneResponse{} }
+func (m *CloneResponse) String() string { return proto.CompactTextString(m) }
+func (*CloneResponse) ProtoMessage()    {}
+
+func (m *CloneResponse) GetStatus() *Status {
 	if m != nil {
 		return m.Status
 	}
@@ -364,80 +438,6 @@ func (m *SetContainsResponse) GetStatus() *Status {
 	return nil
 }
 
-type SetEqualsRequest struct {
-	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
-	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
-}
-
-func (m *SetEqualsRequest) Reset()         { *m = SetEqualsRequest{} }
-func (m *SetEqualsRequest) String() string { return proto.CompactTextString(m) }
-func (*SetEqualsRequest) ProtoMessage()    {}
-
-type SetEqualsResponse struct {
-	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	Result bool    `protobuf:"varint,2,opt,name=result" json:"result,omitempty"`
-}
-
-func (m *SetEqualsResponse) Reset()         { *m = SetEqualsResponse{} }
-func (m *SetEqualsResponse) String() string { return proto.CompactTextString(m) }
-func (*SetEqualsResponse) ProtoMessage()    {}
-
-func (m *SetEqualsResponse) GetStatus() *Status {
-	if m != nil {
-		return m.Status
-	}
-	return nil
-}
-
-type SetMergeRequest struct {
-	ReferenceId      string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
-	OtherReferenceId string `protobuf:"bytes,2,opt,name=otherReferenceId" json:"otherReferenceId,omitempty"`
-}
-
-func (m *SetMergeRequest) Reset()         { *m = SetMergeRequest{} }
-func (m *SetMergeRequest) String() string { return proto.CompactTextString(m) }
-func (*SetMergeRequest) ProtoMessage()    {}
-
-type SetMergeResponse struct {
-	Status *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-}
-
-func (m *SetMergeResponse) Reset()         { *m = SetMergeResponse{} }
-func (m *SetMergeResponse) String() string { return proto.CompactTextString(m) }
-func (*SetMergeResponse) ProtoMessage()    {}
-
-func (m *SetMergeResponse) GetStatus() *Status {
-	if m != nil {
-		return m.Status
-	}
-	return nil
-}
-
-type SetCloneRequest struct {
-	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
-}
-
-func (m *SetCloneRequest) Reset()         { *m = SetCloneRequest{} }
-func (m *SetCloneRequest) String() string { return proto.CompactTextString(m) }
-func (*SetCloneRequest) ProtoMessage()    {}
-
-type SetCloneResponse struct {
-	Status      *Status `protobuf:"bytes,1,opt,name=status" json:"status,omitempty"`
-	ResourceId  string  `protobuf:"bytes,2,opt,name=resourceId" json:"resourceId,omitempty"`
-	ResourceKey string  `protobuf:"bytes,3,opt,name=resourceKey" json:"resourceKey,omitempty"`
-}
-
-func (m *SetCloneResponse) Reset()         { *m = SetCloneResponse{} }
-func (m *SetCloneResponse) String() string { return proto.CompactTextString(m) }
-func (*SetCloneResponse) ProtoMessage()    {}
-
-func (m *SetCloneResponse) GetStatus() *Status {
-	if m != nil {
-		return m.Status
-	}
-	return nil
-}
-
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConn
@@ -453,6 +453,12 @@ type CRDTClient interface {
 	Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error)
 	// Commit resource to persistent storage.
 	Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error)
+	// Test Equality of two resources by reference.
+	Equals(ctx context.Context, in *EqualsRequest, opts ...grpc.CallOption) (*EqualsResponse, error)
+	// Merge two references with matching datatype.
+	Merge(ctx context.Context, in *MergeRequest, opts ...grpc.CallOption) (*MergeResponse, error)
+	// Clone a reference into a new resource.
+	Clone(ctx context.Context, in *CloneRequest, opts ...grpc.CallOption) (*CloneResponse, error)
 	// Returns a list of supported data types.
 	SupportedTypes(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*SupportedTypesResponse, error)
 	IsSupportedType(ctx context.Context, in *TypeMessage, opts ...grpc.CallOption) (*BooleanResponse, error)
@@ -502,6 +508,33 @@ func (c *cRDTClient) Detach(ctx context.Context, in *DetachRequest, opts ...grpc
 func (c *cRDTClient) Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error) {
 	out := new(CommitResponse)
 	err := grpc.Invoke(ctx, "/crdt.CRDT/Commit", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) Equals(ctx context.Context, in *EqualsRequest, opts ...grpc.CallOption) (*EqualsResponse, error) {
+	out := new(EqualsResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Equals", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) Merge(ctx context.Context, in *MergeRequest, opts ...grpc.CallOption) (*MergeResponse, error) {
+	out := new(MergeResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Merge", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cRDTClient) Clone(ctx context.Context, in *CloneRequest, opts ...grpc.CallOption) (*CloneResponse, error) {
+	out := new(CloneResponse)
+	err := grpc.Invoke(ctx, "/crdt.CRDT/Clone", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -573,6 +606,12 @@ type CRDTServer interface {
 	Detach(context.Context, *DetachRequest) (*DetachResponse, error)
 	// Commit resource to persistent storage.
 	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
+	// Test Equality of two resources by reference.
+	Equals(context.Context, *EqualsRequest) (*EqualsResponse, error)
+	// Merge two references with matching datatype.
+	Merge(context.Context, *MergeRequest) (*MergeResponse, error)
+	// Clone a reference into a new resource.
+	Clone(context.Context, *CloneRequest) (*CloneResponse, error)
 	// Returns a list of supported data types.
 	SupportedTypes(context.Context, *EmptyMessage) (*SupportedTypesResponse, error)
 	IsSupportedType(context.Context, *TypeMessage) (*BooleanResponse, error)
@@ -630,6 +669,42 @@ func _CRDT_Commit_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		return nil, err
 	}
 	out, err := srv.(CRDTServer).Commit(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(EqualsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Equals(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(MergeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Merge(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _CRDT_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(CloneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CRDTServer).Clone(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -729,6 +804,18 @@ var _CRDT_serviceDesc = grpc.ServiceDesc{
 			Handler:    _CRDT_Commit_Handler,
 		},
 		{
+			MethodName: "Equals",
+			Handler:    _CRDT_Equals_Handler,
+		},
+		{
+			MethodName: "Merge",
+			Handler:    _CRDT_Merge_Handler,
+		},
+		{
+			MethodName: "Clone",
+			Handler:    _CRDT_Clone_Handler,
+		},
+		{
 			MethodName: "SupportedTypes",
 			Handler:    _CRDT_SupportedTypes_Handler,
 		},
@@ -763,9 +850,6 @@ type GrowOnlySetClient interface {
 	Insert(ctx context.Context, in *SetInsertRequest, opts ...grpc.CallOption) (*SetInsertResponse, error)
 	Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error)
 	Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error)
-	Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error)
-	Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error)
-	Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error)
 }
 
 type growOnlySetClient struct {
@@ -835,33 +919,6 @@ func (c *growOnlySetClient) Contains(ctx context.Context, in *SetContainsRequest
 	return out, nil
 }
 
-func (c *growOnlySetClient) Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error) {
-	out := new(SetEqualsResponse)
-	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Equals", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *growOnlySetClient) Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error) {
-	out := new(SetMergeResponse)
-	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Merge", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *growOnlySetClient) Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error) {
-	out := new(SetCloneResponse)
-	err := grpc.Invoke(ctx, "/crdt.GrowOnlySet/Clone", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // Server API for GrowOnlySet service
 
 type GrowOnlySetServer interface {
@@ -869,9 +926,6 @@ type GrowOnlySetServer interface {
 	Insert(context.Context, *SetInsertRequest) (*SetInsertResponse, error)
 	Length(context.Context, *SetLengthRequest) (*SetLengthResponse, error)
 	Contains(context.Context, *SetContainsRequest) (*SetContainsResponse, error)
-	Equals(context.Context, *SetEqualsRequest) (*SetEqualsResponse, error)
-	Merge(context.Context, *SetMergeRequest) (*SetMergeResponse, error)
-	Clone(context.Context, *SetCloneRequest) (*SetCloneResponse, error)
 }
 
 func RegisterGrowOnlySetServer(s *grpc.Server, srv GrowOnlySetServer) {
@@ -935,42 +989,6 @@ func _GrowOnlySet_Contains_Handler(srv interface{}, ctx context.Context, dec fun
 	return out, nil
 }
 
-func _GrowOnlySet_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetEqualsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(GrowOnlySetServer).Equals(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _GrowOnlySet_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetMergeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(GrowOnlySetServer).Merge(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _GrowOnlySet_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetCloneRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(GrowOnlySetServer).Clone(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 var _GrowOnlySet_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "crdt.GrowOnlySet",
 	HandlerType: (*GrowOnlySetServer)(nil),
@@ -986,18 +1004,6 @@ var _GrowOnlySet_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Contains",
 			Handler:    _GrowOnlySet_Contains_Handler,
-		},
-		{
-			MethodName: "Equals",
-			Handler:    _GrowOnlySet_Equals_Handler,
-		},
-		{
-			MethodName: "Merge",
-			Handler:    _GrowOnlySet_Merge_Handler,
-		},
-		{
-			MethodName: "Clone",
-			Handler:    _GrowOnlySet_Clone_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -1017,9 +1023,6 @@ type TwoPhaseSetClient interface {
 	Remove(ctx context.Context, in *SetRemoveRequest, opts ...grpc.CallOption) (*SetRemoveResponse, error)
 	Length(ctx context.Context, in *SetLengthRequest, opts ...grpc.CallOption) (*SetLengthResponse, error)
 	Contains(ctx context.Context, in *SetContainsRequest, opts ...grpc.CallOption) (*SetContainsResponse, error)
-	Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error)
-	Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error)
-	Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error)
 }
 
 type twoPhaseSetClient struct {
@@ -1098,33 +1101,6 @@ func (c *twoPhaseSetClient) Contains(ctx context.Context, in *SetContainsRequest
 	return out, nil
 }
 
-func (c *twoPhaseSetClient) Equals(ctx context.Context, in *SetEqualsRequest, opts ...grpc.CallOption) (*SetEqualsResponse, error) {
-	out := new(SetEqualsResponse)
-	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Equals", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *twoPhaseSetClient) Merge(ctx context.Context, in *SetMergeRequest, opts ...grpc.CallOption) (*SetMergeResponse, error) {
-	out := new(SetMergeResponse)
-	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Merge", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *twoPhaseSetClient) Clone(ctx context.Context, in *SetCloneRequest, opts ...grpc.CallOption) (*SetCloneResponse, error) {
-	out := new(SetCloneResponse)
-	err := grpc.Invoke(ctx, "/crdt.TwoPhaseSet/Clone", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // Server API for TwoPhaseSet service
 
 type TwoPhaseSetServer interface {
@@ -1133,9 +1109,6 @@ type TwoPhaseSetServer interface {
 	Remove(context.Context, *SetRemoveRequest) (*SetRemoveResponse, error)
 	Length(context.Context, *SetLengthRequest) (*SetLengthResponse, error)
 	Contains(context.Context, *SetContainsRequest) (*SetContainsResponse, error)
-	Equals(context.Context, *SetEqualsRequest) (*SetEqualsResponse, error)
-	Merge(context.Context, *SetMergeRequest) (*SetMergeResponse, error)
-	Clone(context.Context, *SetCloneRequest) (*SetCloneResponse, error)
 }
 
 func RegisterTwoPhaseSetServer(s *grpc.Server, srv TwoPhaseSetServer) {
@@ -1211,42 +1184,6 @@ func _TwoPhaseSet_Contains_Handler(srv interface{}, ctx context.Context, dec fun
 	return out, nil
 }
 
-func _TwoPhaseSet_Equals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetEqualsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(TwoPhaseSetServer).Equals(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _TwoPhaseSet_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetMergeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(TwoPhaseSetServer).Merge(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _TwoPhaseSet_Clone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
-	in := new(SetCloneRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(TwoPhaseSetServer).Clone(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 var _TwoPhaseSet_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "crdt.TwoPhaseSet",
 	HandlerType: (*TwoPhaseSetServer)(nil),
@@ -1266,18 +1203,6 @@ var _TwoPhaseSet_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Contains",
 			Handler:    _TwoPhaseSet_Contains_Handler,
-		},
-		{
-			MethodName: "Equals",
-			Handler:    _TwoPhaseSet_Equals_Handler,
-		},
-		{
-			MethodName: "Merge",
-			Handler:    _TwoPhaseSet_Merge_Handler,
-		},
-		{
-			MethodName: "Clone",
-			Handler:    _TwoPhaseSet_Clone_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

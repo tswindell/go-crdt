@@ -66,7 +66,7 @@ func NewServer() (*Server, error) {
     u, e := user.Current()
     if e != nil { return nil, fmt.Errorf("Failed to get user") }
     filestore := NewFileStore(path.Join(u.HomeDir, ".crdb", "store"))
-    d.database.RegisterStorageType(filestore)
+    d.database.RegisterStorage(filestore)
 
     // Register cryptographic methods.
     aes128cbc, _ := NewAESCryptoMethod(AES_128_KEY_SIZE)
@@ -79,17 +79,19 @@ func NewServer() (*Server, error) {
     d.database.RegisterCryptoMethod(aes256cbc)
 
     // Register resource data types.
-    tGSet := NewGSetResourceFactory(d.database)
-    d.database.RegisterType(tGSet)
+    d.database.RegisterType(NewSetResourceType(d.database,
+                                               GROWONLYSET_RESOURCE_TYPE,
+                                               NewGSetResource))
 
-    t2PSet := NewTwoPhaseSetResourceFactory(d.database)
-    d.database.RegisterType(t2PSet)
+    d.database.RegisterType(NewSetResourceType(d.database,
+                                               TWOPHASESET_RESOURCE_TYPE,
+                                               New2PSetResource))
 
     // Register this instance as a CRDT service on our listener.
     pb.RegisterCRDTServer(d.service, d)
 
-    pb.RegisterGrowOnlySetServer(d.service, tGSet)
-    pb.RegisterTwoPhaseSetServer(d.service, t2PSet)
+    pb.RegisterGrowOnlySetServer(d.service, &GrowOnlySetService{SetResourceService{d.database}})
+    pb.RegisterTwoPhaseSetServer(d.service, &TwoPhaseSetService{SetResourceService{d.database}})
     return d, nil
 }
 
@@ -189,6 +191,46 @@ func (d *Server) Commit(ctx context.Context, m *pb.CommitRequest) (*pb.CommitRes
 
     LogInfo("CommitResponse: success=%v error=%s", status.Success, status.ErrorType)
     return &pb.CommitResponse{Status: status}, nil
+}
+
+// The Merge() server method
+func (d *Server) Merge(ctx context.Context, m *pb.MergeRequest) (*pb.MergeResponse, error) {
+    aRef := ReferenceId(m.ReferenceId)
+    bRef := ReferenceId(m.OtherReferenceId)
+
+    if e := d.database.Merge(aRef, bRef); e != nil {
+        return &pb.MergeResponse{Status:&pb.Status{Success:false, ErrorType:e.Error()}}, nil
+    }
+    return &pb.MergeResponse{Status:&pb.Status{Success:true}}, nil
+}
+
+// The Clone() server method
+func (d *Server) Clone(ctx context.Context, m *pb.CloneRequest) (*pb.CloneResponse, error) {
+    ref := ReferenceId(m.ReferenceId)
+    newResource, e := d.database.Clone(ref)
+    if e != nil {
+        return &pb.CloneResponse{Status:&pb.Status{Success:false, ErrorType:e.Error()}}, nil
+    }
+    return &pb.CloneResponse{
+               Status:&pb.Status{Success:true},
+               ResourceId: string(newResource.Id()),
+               ResourceKey: string(newResource.Key()),
+           }, nil
+}
+
+// The Equals() server method
+func (d *Server) Equals(ctx context.Context, m *pb.EqualsRequest) (*pb.EqualsResponse, error) {
+    aRef := ReferenceId(m.ReferenceId)
+    bRef := ReferenceId(m.OtherReferenceId)
+
+    v, e := d.database.Equals(aRef, bRef)
+    if e != nil {
+        return &pb.EqualsResponse{
+                   Status: &pb.Status{Success:false, ErrorType:e.Error()},
+               }, nil
+    }
+
+    return &pb.EqualsResponse{Status: &pb.Status{Success:true}, Result: v}, nil
 }
 
 // The SupportedTypes() server method

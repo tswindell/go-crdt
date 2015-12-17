@@ -110,35 +110,3 @@ func (d *TwoPhaseSetClient) Contains(referenceId ReferenceId, object []byte) (bo
     return r.Result, nil
 }
 
-func (d *TwoPhaseSetClient) Equals(referenceId, otherReferenceId ReferenceId) (bool, error) {
-    r, e := d.TwoPhaseSetClient.Equals(context.Background(),
-                                       &pb.SetEqualsRequest{
-                                           ReferenceId: string(referenceId),
-                                           OtherReferenceId: string(otherReferenceId),
-                                       })
-    if e != nil { return false, e }
-    if !r.Status.Success { return false, fmt.Errorf(r.Status.ErrorType) }
-    return r.Result, nil
-}
-
-func (d *TwoPhaseSetClient) Merge(referenceId, otherReferenceId ReferenceId) error {
-    r, e := d.TwoPhaseSetClient.Merge(context.Background(),
-                                       &pb.SetMergeRequest{
-                                           ReferenceId: string(referenceId),
-                                           OtherReferenceId: string(otherReferenceId),
-                                       })
-    if e != nil { return e }
-    if !r.Status.Success { return fmt.Errorf(r.Status.ErrorType) }
-    return nil
-}
-
-func (d *TwoPhaseSetClient) Clone(referenceId ReferenceId) (ResourceId, ResourceKey, error) {
-    r, e := d.TwoPhaseSetClient.Clone(context.Background(),
-                                      &pb.SetCloneRequest{
-                                          ReferenceId: string(referenceId),
-                                      })
-    if e != nil { return ResourceId(""), ResourceKey(""), e }
-    if !r.Status.Success { return ResourceId(""), ResourceKey(""), fmt.Errorf(r.Status.ErrorType) }
-    return ResourceId(r.ResourceId), ResourceKey(r.ResourceKey), nil
-}
-

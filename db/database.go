@@ -25,11 +25,9 @@ package crdb
 
 import (
     "bytes"
-    "encoding/base64"
     "fmt"
-    "strings"
 
-    //TODO: Remove
+    //TODO: Deprecated
     "code.google.com/p/go-uuid/uuid"
 )
 
@@ -46,77 +44,9 @@ var (
     E_INVALID_CRYPTO        = fmt.Errorf("crdt:invalid-crypto-id")
     E_INVALID_STORAGE       = fmt.Errorf("crdt:invalid-storage-id")
     E_INVALID_RESOURCE_DATA = fmt.Errorf("crdt:invalid-resource-data")
+    E_TYPE_MISMATCH         = fmt.Errorf("crdt:resource-type-mismatch")
 )
 
-// The ResourceId type is the representation of a resources' identifier.
-type ResourceId string
-
-func NewResourceId(storageId, resourceId string) ResourceId {
-    return ResourceId(storageId + ":" + resourceId)
-}
-
-// TODO: Consider renaming GetStorageId
-func (d ResourceId) GetStorageId() string {
-    return strings.SplitN(string(d), ":", 2)[0]
-}
-
-// TODO: Consider renaming GetId
-func (d ResourceId) GetId() string {
-    return strings.SplitN(string(d), ":", 2)[1]
-}
-
-func (d ResourceId) IsValid() bool {
-    parts := strings.SplitN(string(d), ":", 2)
-    return len(parts[0]) > 0 && len(parts[1]) > 0
-}
-
-// The ReferenceId type is the representation of a reference to a resource.
-type ReferenceId string
-
-func (d ReferenceId) IsValid() bool {
-    return len(string(d)) > 0
-}
-
-// The ResourceKey type is the representation of a resources' encryption key.
-type ResourceKey string
-
-// Create a new ResourceKey instance
-func NewResourceKey(typeId string, data []byte) ResourceKey {
-    return ResourceKey(typeId + ":" + base64.StdEncoding.EncodeToString(data))
-}
-
-// Get the cryptographic method type id from key.
-func (d ResourceKey) TypeId() string {
-    return strings.SplitN(string(d), ":", 2)[0]
-}
-
-// Get the raw key data from key.
-func (d ResourceKey) KeyData() []byte {
-    keydata, _ := base64.StdEncoding.DecodeString(strings.SplitN(string(d), ":", 2)[1])
-    return keydata
-}
-
-func (d ResourceKey) IsValid() bool {
-    parts := strings.SplitN(string(d), ":", 2)
-    return len(parts[0]) > 0
-}
-
-// The ResourceType type is the representation of a resources' data type.
-type ResourceType string
-
-func (d ResourceType) IsValid() bool {
-    return len(string(d)) > 0
-}
-
-// The Resource interface defines the API that all resource types must provide.
-type Resource interface {
-    Id() ResourceId
-    Key() ResourceKey
-    TypeId() ResourceType
-
-    Serialize(*bytes.Buffer) error
-    Deserialize(*bytes.Buffer) error
-}
 
 // The ResourceFactory interface defines the API that a resource type must
 // provide.
@@ -124,21 +54,16 @@ type ResourceFactory interface {
     TypeId() ResourceType
 
     Create(ResourceId, ResourceKey) Resource
+
+    Equals(Resource, Resource) (bool, error)
+
+    Merge(Resource, Resource) error
+
+    Clone(Resource) (Resource, error)
+
     Restore(ResourceId, ResourceKey, *bytes.Buffer) (Resource, error)
 }
 
-// The ResourceDatastore type
-type ResourceDatastore ThreadSafeMap
-
-func (d *ResourceDatastore) Add(resource Resource) bool {
-    return ThreadSafeMap(*d).Insert(resource.Id(), resource)
-}
-
-func (d *ResourceDatastore) Get(resourceId ResourceId) Resource {
-    v := ThreadSafeMap(*d).GetValue(resourceId)
-    if v == nil { return nil }
-    return v.(Resource)
-}
 
 // The ResourceTypeRegistry type
 type ResourceTypeRegistry ThreadSafeMap
@@ -159,6 +84,21 @@ func (d *ResourceTypeRegistry) List() []ResourceType {
     return results
 }
 
+
+// The ResourceDatastore type
+type ResourceDatastore ThreadSafeMap
+
+func (d *ResourceDatastore) Add(resource Resource) bool {
+    return ThreadSafeMap(*d).Insert(resource.Id(), resource)
+}
+
+func (d *ResourceDatastore) Get(resourceId ResourceId) Resource {
+    v := ThreadSafeMap(*d).GetValue(resourceId)
+    if v == nil { return nil }
+    return v.(Resource)
+}
+
+
 // The ReferenceTable type
 type ReferenceTable ThreadSafeMap
 
@@ -177,6 +117,7 @@ func (d *ReferenceTable) Resolve(referenceId ReferenceId) ResourceId {
     if v == nil { return ResourceId("") }
     return v.(ResourceId)
 }
+
 
 // The Datastore interface type defines the interface that persistent backing
 // stores must implement.
@@ -208,6 +149,18 @@ func (d *StorageDirectory) List() []string {
     return results
 }
 
+
+// The CryptoMethod interface type defines the interface that crypto methods
+// must implement.
+type CryptoMethod interface {
+    TypeId() string
+
+    GenerateKey() ResourceKey
+
+    Encrypt(ResourceKey, []byte) ([]byte, error)
+    Decrypt(ResourceKey, []byte) ([]byte, error)
+}
+
 // The CryptoMethodDirectory type
 type CryptoMethodDirectory ThreadSafeMap
 
@@ -227,16 +180,6 @@ func (d *CryptoMethodDirectory) List() []string {
     return results
 }
 
-// The CryptoMethod interface type defines the interface that crypto methods
-// must implement.
-type CryptoMethod interface {
-    TypeId() string
-
-    GenerateKey() ResourceKey
-
-    Encrypt(ResourceKey, []byte) ([]byte, error)
-    Decrypt(ResourceKey, []byte) ([]byte, error)
-}
 
 // The Database type
 type Database struct {
@@ -253,8 +196,8 @@ func NewDatabase() *Database {
     d.datatypes  = ResourceTypeRegistry(NewThreadSafeMap())
     d.datastore  = ResourceDatastore(NewThreadSafeMap())
     d.references = ReferenceTable(NewThreadSafeMap())
-    d.crypto     = CryptoMethodDirectory(NewThreadSafeMap())
     d.storage    = StorageDirectory(NewThreadSafeMap())
+    d.crypto     = CryptoMethodDirectory(NewThreadSafeMap())
     return d
 }
 
@@ -265,17 +208,17 @@ func (d *Database) RegisterType(factory ResourceFactory) error {
     return nil
 }
 
+// The RegisterStorage() instance method registers a datastore plugin with
+// this database.
+func (d *Database) RegisterStorage(store Storage) error {
+    if !d.storage.AddStore(store) { return fmt.Errorf("Already registered storage: %s", store.TypeId()) }
+    return nil
+}
+
 // The RegisterCryptoMethod() instance method registers a cryptographic plugin
 // with this database.
 func (d *Database) RegisterCryptoMethod(method CryptoMethod) error {
     if !d.crypto.AddMethod(method) { return fmt.Errorf("Already registered crypto method: %s", method.TypeId()) }
-    return nil
-}
-
-// The RegisterDatastore() instance method registers a datastore plugin with
-// this database.
-func (d *Database) RegisterStorageType(store Storage) error {
-    if !d.storage.AddStore(store) { return fmt.Errorf("Already registered storage: %s", store.TypeId()) }
     return nil
 }
 
@@ -292,7 +235,7 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
     crypto := d.crypto.GetMethod(cryptoId)
     if crypto == nil { return nil, E_UNKNOWN_CRYPTO }
 
-    resourceId  := ResourceId(storageId + "://" + GenerateUUID())
+    resourceId  := ResourceId(storageId + ":" + GenerateUUID())
     resourceKey := crypto.GenerateKey()
 
     resource := factory.Create(resourceId, resourceKey)
@@ -337,7 +280,7 @@ func (d *Database) Commit(referenceId ReferenceId) error {
     if crypto == nil { return E_INVALID_CRYPTO }
 
     buff := bytes.Buffer{}
-    buff.WriteString(string(resource.TypeId()))
+    buff.WriteString(string(resource.Type()))
     buff.WriteByte(byte(0x00))
     if e := resource.Serialize(&buff); e != nil { return e }
 
@@ -367,7 +310,9 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
     typeString, e := buff.ReadString(byte(0x00))
     if e != nil { return nil, e }
 
+    // Remove 0x00 byte from end of header segment.
     resourceType := ResourceType(typeString[:len(typeString) - 1])
+
     factory := d.datatypes.GetFactory(resourceType)
     if factory == nil { return nil, E_UNKNOWN_TYPE }
 
@@ -375,6 +320,53 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
     if e != nil { return nil, e }
 
     return resource, nil
+}
+
+// The Equals() database method
+func (d *Database) Equals(a ReferenceId, b ReferenceId) (bool, error) {
+    aResource, e := d.Resolve(a)
+    if e != nil { return false, e }
+
+    bResource, e := d.Resolve(b)
+    if e != nil { return false, e }
+
+    // They can't be equal if they're not the same type.
+    if aResource.Type() != bResource.Type() { return false, E_TYPE_MISMATCH }
+
+    // Get resource factory for type.
+    factory := d.datatypes.GetFactory(aResource.Type())
+    if factory == nil { return false, E_INVALID_TYPE }
+
+    return factory.Equals(aResource, bResource)
+}
+
+// The Merge() database method
+func (d *Database) Merge(a ReferenceId, b ReferenceId) error {
+    aResource, e := d.Resolve(a)
+    if e != nil { return e }
+
+    bResource, e := d.Resolve(b)
+    if e != nil { return e }
+
+    // Can't merge different types.
+    if aResource.Type() != bResource.Type() { return E_TYPE_MISMATCH }
+
+    // Get resource factory for type.
+    factory := d.datatypes.GetFactory(aResource.Type())
+    if factory == nil { return E_INVALID_TYPE }
+
+    return factory.Merge(aResource, bResource)
+}
+
+// The Clone() database method
+func (d *Database) Clone(referenceId ReferenceId) (Resource, error) {
+    aResource, e := d.Resolve(referenceId)
+    if e != nil { return nil, e }
+
+    factory := d.datatypes.GetFactory(aResource.Type())
+    if factory == nil { return nil, E_INVALID_TYPE }
+
+    return factory.Clone(aResource)
 }
 
 // The SupportedTypes() database method returns a list of types that this
