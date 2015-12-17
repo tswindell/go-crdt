@@ -50,6 +50,10 @@ func NewFileStore(basepath string) *FileStore {
 
 func (d *FileStore) TypeId() string { return "file" }
 
+func (d *FileStore) GenerateResourceId() (ResourceId, error) {
+    return ResourceId(GenerateUUID()), nil
+}
+
 // The HasResource instance method returns true if this store has a specific resource.
 func (d *FileStore) HasResource(resourceId ResourceId) bool {
     if _, e := os.Stat(path.Join(d.basepath, resourceId.GetId())); os.IsNotExist(e) {

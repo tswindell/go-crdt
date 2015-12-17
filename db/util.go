@@ -27,6 +27,9 @@ import (
     "log"
     "runtime"
     "strconv"
+
+    //TODO: Deprecated
+    "code.google.com/p/go-uuid/uuid"
 )
 
 func __log(t, m string, v ...interface{}) {
@@ -38,4 +41,6 @@ func __log(t, m string, v ...interface{}) {
 func LogInfo(m string, v ...interface{}) { __log("INFO", m, v...) }
 func LogWarn(m string, v ...interface{}) { __log("INFO", m, v...) }
 func LogError(m string, v ...interface{}) { __log("INFO", m, v...) }
+
+func GenerateUUID() string { return uuid.New() }
 

@@ -26,9 +26,6 @@ package crdb
 import (
     "bytes"
     "fmt"
-
-    //TODO: Deprecated
-    "code.google.com/p/go-uuid/uuid"
 )
 
 var (
@@ -123,6 +120,8 @@ func (d *ReferenceTable) Resolve(referenceId ReferenceId) ResourceId {
 // stores must implement.
 type Storage interface {
     TypeId() string
+
+    GenerateResourceId() (ResourceId, error)
 
     HasResource(ResourceId) bool
 
@@ -415,10 +414,5 @@ func (d *Database) Resolve(referenceId ReferenceId) (Resource, error) {
 
     resource := d.datastore.Get(resourceId)
     return resource, nil
-}
-
-// The GenerateUUID() function
-func GenerateUUID() string {
-    return uuid.New()
 }
 
