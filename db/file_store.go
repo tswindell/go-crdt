@@ -63,10 +63,16 @@ func (d *FileStore) HasResource(resourceId ResourceId) bool {
 }
 
 // The GetResourceData instance method.
-func (d *FileStore) GetData(resourceId ResourceId) ([]byte, error) {
-    if !d.HasResource(resourceId) { return nil, E_UNKNOWN_RESOURCE }
+func (d *FileStore) GetData(resourceId ResourceId, ch chan []byte) error {
+    if !d.HasResource(resourceId) { return E_UNKNOWN_RESOURCE }
+
     data, e := ioutil.ReadFile(path.Join(d.basepath, resourceId.GetId()))
-    return data, e
+    if e != nil { return e }
+
+    ch<- data
+    close(ch)
+
+    return nil
 }
 
 // The SetResourceData instance method.

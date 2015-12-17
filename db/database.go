@@ -125,7 +125,7 @@ type Storage interface {
 
     HasResource(ResourceId) bool
 
-    GetData(ResourceId) ([]byte, error)
+    GetData(ResourceId, chan []byte) error
     SetData(ResourceId, []byte) error
 }
 
@@ -293,30 +293,47 @@ func (d *Database) Commit(referenceId ReferenceId) error {
 
 // The Restore() database method restores a resource from persistent storage.
 func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Resource, error) {
+    var resource     Resource
+    var resourceType ResourceType
+    var factory      ResourceFactory
+    var e            error
+
     storage := d.storage.GetStore(resourceId.GetStorageId())
     if storage == nil { return nil, E_UNKNOWN_RESOURCE }
 
     crypto := d.crypto.GetMethod(resourceKey.TypeId())
     if crypto == nil { return nil, E_INVALID_KEY }
 
-    data, e := storage.GetData(resourceId)
-    if e != nil { return nil, e }
+    ch := make(chan []byte)
 
-    data, e = crypto.Decrypt(resourceKey, data)
-    if e != nil { return nil, e }
+    go storage.GetData(resourceId, ch)
 
-    buff := bytes.NewBuffer(data)
-    typeString, e := buff.ReadString(byte(0x00))
-    if e != nil { return nil, e }
+    for data := range ch {
+        data, e = crypto.Decrypt(resourceKey, data)
+        if e != nil { return nil, e }
 
-    // Remove 0x00 byte from end of header segment.
-    resourceType := ResourceType(typeString[:len(typeString) - 1])
 
-    factory := d.datatypes.GetFactory(resourceType)
-    if factory == nil { return nil, E_UNKNOWN_TYPE }
+        buff := bytes.NewBuffer(data)
+        s, e := buff.ReadString(byte(0x00))
+        if e != nil { return nil, e }
 
-    resource, e := factory.Restore(resourceId, resourceKey, buff)
-    if e != nil { return nil, e }
+        iType := ResourceType(s[:len(s) - 1])
+
+        if resource == nil {
+            resourceType = iType
+
+            factory = d.datatypes.GetFactory(resourceType)
+            if factory == nil { return nil, E_UNKNOWN_TYPE }
+
+            resource, e = factory.Restore(resourceId, resourceKey, buff)
+            if e != nil { return nil, e }
+        } else {
+            if iType != resourceType { return nil, E_TYPE_MISMATCH }
+            // Acts as merge if resource is already initialized.
+            e = resource.Deserialize(buff)
+        }
+
+    }
 
     return resource, nil
 }
