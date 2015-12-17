@@ -126,6 +126,41 @@ func (d *Client) Commit(referenceId ReferenceId) error {
     return nil
 }
 
+// The Equals client request method
+func (d *Client) Equals(aRef, bRef ReferenceId) (bool, error) {
+    r, e := d.CRDTClient.Equals(context.Background(),
+                                &pb.EqualsRequest{
+                                    ReferenceId: string(aRef),
+                                    OtherReferenceId: string(bRef),
+                                })
+    if e != nil { return false, e }
+    if !r.Status.Success { return false, fmt.Errorf(r.Status.ErrorType) }
+    return r.Result, nil
+}
+
+// The Merge client request method
+func (d *Client) Merge(aRef, bRef ReferenceId) error {
+    r, e := d.CRDTClient.Merge(context.Background(),
+                               &pb.MergeRequest{
+                                   ReferenceId: string(aRef),
+                                   OtherReferenceId: string(bRef),
+                               })
+    if e != nil { return e }
+    if !r.Status.Success { return fmt.Errorf(r.Status.ErrorType) }
+    return nil
+}
+
+// The Clone client request method
+func (d *Client) Clone(referenceId ReferenceId) (ResourceId, ResourceKey, error) {
+    r, e := d.CRDTClient.Clone(context.Background(),
+                               &pb.CloneRequest{
+                                   ReferenceId: string(referenceId),
+                               })
+    if e != nil { return ResourceId(""), ResourceKey(""), e }
+    if !r.Status.Success { return ResourceId(""), ResourceKey(""), fmt.Errorf(r.Status.ErrorType) }
+    return ResourceId(r.ResourceId), ResourceKey(r.ResourceKey), nil
+}
+
 // The SupportedTypes client request method
 func (d *Client) SupportedTypes() ([]string, error) {
     results := make([]string, 0)
