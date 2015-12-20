@@ -51,7 +51,7 @@ func NewFileStore(basepath string) *FileStore {
 func (d *FileStore) TypeId() string { return "file" }
 
 func (d *FileStore) GenerateResourceId() (ResourceId, error) {
-    return ResourceId(GenerateUUID()), nil
+    return ResourceId(d.TypeId() + ":" + GenerateUUID()), nil
 }
 
 // The HasResource instance method returns true if this store has a specific resource.
@@ -63,7 +63,7 @@ func (d *FileStore) HasResource(resourceId ResourceId) bool {
 }
 
 // The GetResourceData instance method.
-func (d *FileStore) GetData(resourceId ResourceId, ch chan []byte) error {
+func (d *FileStore) GetData(resourceId ResourceId, key ResourceKey, ch chan []byte) error {
     if !d.HasResource(resourceId) { return E_UNKNOWN_RESOURCE }
 
     data, e := ioutil.ReadFile(path.Join(d.basepath, resourceId.GetId()))
@@ -76,7 +76,7 @@ func (d *FileStore) GetData(resourceId ResourceId, ch chan []byte) error {
 }
 
 // The SetResourceData instance method.
-func (d *FileStore) SetData(resourceId ResourceId, data []byte) error {
+func (d *FileStore) SetData(resourceId ResourceId, key ResourceKey, data []byte) error {
     filepath := path.Join(d.basepath, resourceId.GetId())
     return ioutil.WriteFile(filepath, data, 0644)
 }

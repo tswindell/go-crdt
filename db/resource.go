@@ -24,7 +24,7 @@ func (d ResourceId) GetStorageId() string {
 
 func (d ResourceId) IsValid() bool {
     parts := strings.SplitN(string(d), ":", 2)
-    return len(parts[0]) > 0 && len(parts[1]) > 0
+    return len(parts) == 2 && len(parts[0]) > 0 && len(parts[1]) > 0
 }
 
 

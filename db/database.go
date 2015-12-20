@@ -125,8 +125,8 @@ type Storage interface {
 
     HasResource(ResourceId) bool
 
-    GetData(ResourceId, chan []byte) error
-    SetData(ResourceId, []byte) error
+    GetData(ResourceId, ResourceKey, chan []byte) error
+    SetData(ResourceId, ResourceKey, []byte) error
 }
 
 // The StorageDirectory type
@@ -234,7 +234,9 @@ func (d *Database) Create(resourceType ResourceType, storageId string, cryptoId 
     crypto := d.crypto.GetMethod(cryptoId)
     if crypto == nil { return nil, E_UNKNOWN_CRYPTO }
 
-    resourceId  := ResourceId(storageId + ":" + GenerateUUID())
+    resourceId, e := storage.GenerateResourceId()
+    if e != nil { return nil, E_INVALID_RESOURCE }
+
     resourceKey := crypto.GenerateKey()
 
     resource := factory.Create(resourceId, resourceKey)
@@ -247,9 +249,13 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
     resource := d.datastore.Get(resourceId)
 
     if resource == nil {
+        LogInfo("Resource not found in memory, attempting restore.")
         var e error
         resource, e = d.Restore(resourceId, resourceKey)
-        if e != nil { return ReferenceId(""), e }
+        if e != nil {
+            LogInfo("Restore failed: %v", e)
+            return ReferenceId(""), e
+        }
     }
 
     if resource.Key() != resourceKey { return ReferenceId(""), E_INVALID_KEY }
@@ -286,7 +292,7 @@ func (d *Database) Commit(referenceId ReferenceId) error {
     data, e := crypto.Encrypt(resource.Key(), buff.Bytes())
     if e != nil { return e }
 
-    e = storage.SetData(resource.Id(), data)
+    e = storage.SetData(resource.Id(), resource.Key(), data)
     if e != nil { return e }
     return nil
 }
@@ -306,12 +312,16 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
 
     ch := make(chan []byte)
 
-    go storage.GetData(resourceId, ch)
+    go storage.GetData(resourceId, resourceKey, ch)
 
     for data := range ch {
+        LogInfo("Decrypting stored data...")
         data, e = crypto.Decrypt(resourceKey, data)
-        if e != nil { return nil, e }
 
+        if e != nil {
+            LogError("Decryption failed: %v", e)
+            return nil, e
+        }
 
         buff := bytes.NewBuffer(data)
         s, e := buff.ReadString(byte(0x00))
@@ -319,22 +329,33 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
 
         iType := ResourceType(s[:len(s) - 1])
 
+        LogInfo("Extracted resource type information: %s", iType)
         if resource == nil {
             resourceType = iType
 
             factory = d.datatypes.GetFactory(resourceType)
-            if factory == nil { return nil, E_UNKNOWN_TYPE }
+            if factory == nil {
+                LogError("Failed to find factory for type: %s", resourceType)
+                return nil, E_UNKNOWN_TYPE
+            }
 
+            LogInfo("Invoking factory restore method...")
             resource, e = factory.Restore(resourceId, resourceKey, buff)
-            if e != nil { return nil, e }
+            if e != nil || resource == nil {
+                LogError("Factory restore failed: %v", e)
+                return nil, e
+            }
         } else {
             if iType != resourceType { return nil, E_TYPE_MISMATCH }
+
             // Acts as merge if resource is already initialized.
             e = resource.Deserialize(buff)
         }
 
     }
 
+    LogInfo("Adding resource: %s", string(resource.Id()))
+    d.datastore.Add(resource)
     return resource, nil
 }
 

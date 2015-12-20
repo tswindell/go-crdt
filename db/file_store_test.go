@@ -19,24 +19,24 @@ func Test_FileStore(t *testing.T) {
     }
 
     ch := make(chan []byte)
-    if e := fs.GetData(ResourceId("file://0123456789ABCDEF"), ch); e == nil {
+    if e := fs.GetData(ResourceId("file://0123456789ABCDEF"), ResourceKey(""), ch); e == nil {
         t.Error("Expected failure from GetData")
     }
 
     ch = make(chan []byte)
-    if e := fs.GetData(ResourceId("file://0123456789ABCDEF"), ch); e != E_UNKNOWN_RESOURCE {
+    if e := fs.GetData(ResourceId("file://0123456789ABCDEF"), ResourceKey(""), ch); e != E_UNKNOWN_RESOURCE {
         t.Errorf("Wrong error returned from bad GetData: %v", e)
     }
 
     in := make([]byte, 32)
     rand.Read(in)
 
-    if e := fs.SetData(ResourceId("file://0123456789ABCDEF"), in); e != nil {
+    if e := fs.SetData(ResourceId("file://0123456789ABCDEF"), ResourceKey(""), in); e != nil {
         t.Errorf("Failed call to SetData with valid data: %v", e)
     }
 
     ch = make(chan []byte)
-    go fs.GetData(ResourceId("file://0123456789ABCDEF"), ch)
+    go fs.GetData(ResourceId("file://0123456789ABCDEF"), ResourceKey(""), ch)
 
     out := <-ch
 
