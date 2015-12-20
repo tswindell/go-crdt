@@ -57,6 +57,13 @@ func Test_Client_ObjectGet(t *testing.T) {
     if len(node.Data) != 2 { t.Error("Data length != 2") }
 }
 
+func Test_Client_ObjectGet_Invalid(t *testing.T) {
+    if e := initClient(t); e != nil { t.Fatal("Failed to connect") }
+
+    _, e := cl.ObjectGet("invalid")
+    if e == nil { t.Fatal("No error received with invalid data!") }
+}
+
 func Test_Client_ObjectPutData(t *testing.T) {
     if e := initClient(t); e != nil { t.Fatal("Failed to connect") }
 

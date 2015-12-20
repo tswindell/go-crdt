@@ -2,6 +2,7 @@ package ipfs
 
 import (
     "encoding/json"
+    "fmt"
     "io"
     "io/ioutil"
 
@@ -21,8 +22,6 @@ type Client struct {
     http.Client
 
     NodeInfo NodeId
-
-    IsConnected bool
 }
 
 type NodeId struct {
@@ -55,9 +54,12 @@ func (d *Client) Connect() error {
     if e != nil { return e }
 
     d.NodeInfo = nodeInfo
-    d.IsConnected = true
 
     return nil
+}
+
+func (d *Client) IsConnected() bool {
+    return len(d.NodeInfo.ID) > 0
 }
 
 func Multihash(data []byte) string {
@@ -84,7 +86,7 @@ func (d *Client) ObjectGet(mh string) (commands.Node, error) {
     var result commands.Node
 
     decoder, e := d.DoJSONRequest([]string{"object", "get", mh}, nil, commands.ObjectCmd)
-    if e != nil { return result, nil }
+    if e != nil { return result, e }
     decoder.Decode(&result)
 
     return result, nil
@@ -152,7 +154,11 @@ func (d *Client) FindProvs(mh string, ch chan *peer.PeerInfo) error {
     if e != nil { return e }
 
     res, e := d.Send(req)
-    if e != nil { return e }
+    if e != nil {
+        LogError("Failed to send request: %v", e)
+        d.NodeInfo = NodeId{}
+        return e
+    }
 
     reader, e := res.Reader()
     if e != nil { return e }
@@ -214,7 +220,17 @@ func (d *Client) DoReaderRequest(path []string, args []string, c *cmd.Command) (
     if e != nil { return nil, e }
 
     res, e := d.Send(req)
-    if e != nil { return nil, e }
+    if e != nil {
+        LogError("Failed to send request: %v", e)
+        d.NodeInfo = NodeId{}
+        return nil, e
+    }
+
+    if res.Error() != nil {
+        LogError("Received error response: %s", res.Error().Message)
+        return nil, fmt.Errorf(res.Error().Message)
+    }
+
     defer res.Close()
 
     return res.Reader()
