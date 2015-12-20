@@ -98,32 +98,6 @@ func (d *TwoPhaseSetCommandListener) DoContains(client *crdb.Client) {
     fmt.Println(result)
 }
 
-func (d *TwoPhaseSetCommandListener) DoEquals(client *crdb.Client) {
-    d.CheckNArg(4, "equals <ReferenceId> <ReferenceId>")
-
-    result, e := client.TwoPhaseSetClient.Equals(crdb.ReferenceId(flag.Arg(2)), crdb.ReferenceId(flag.Arg(3)))
-    d.CheckError("Failed to check set equality", e)
-
-    fmt.Println(result)
-}
-
-func (d *TwoPhaseSetCommandListener) DoMerge(client *crdb.Client) {
-    d.CheckNArg(4, "merge <ReferenceId> <ReferenceId>")
-
-    e := client.TwoPhaseSetClient.Merge(crdb.ReferenceId(flag.Arg(2)), crdb.ReferenceId(flag.Arg(4)))
-    d.CheckError("Failed to do merge operation on set", e)
-}
-
-func (d *TwoPhaseSetCommandListener) DoClone(client *crdb.Client) {
-    d.CheckNArg(3, "clone <ReferenceId>")
-
-    resourceId, resourceKey, e := client.TwoPhaseSetClient.Clone(crdb.ReferenceId(flag.Arg(2)))
-    d.CheckError("Failed to do clone operation on set", e)
-
-    fmt.Println("ResourceId:", resourceId)
-    fmt.Println("ResourceKey:", resourceKey)
-}
-
 func (d *TwoPhaseSetCommandListener) Execute(client *crdb.Client) {
     usage := "<list|insert|length|contains|equals|merge|clone>"
 
@@ -138,9 +112,6 @@ func (d *TwoPhaseSetCommandListener) Execute(client *crdb.Client) {
     case "remove": d.DoRemove(client)
     case "length": d.DoLength(client)
     case "contains": d.DoContains(client)
-    case "equals": d.DoEquals(client)
-    case "merge": d.DoMerge(client)
-    case "clone": d.DoClone(client)
     default:
         d.ShowUsage(usage)
         os.Exit(1)
