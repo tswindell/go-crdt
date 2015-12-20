@@ -68,6 +68,10 @@ func NewServer() (*Server, error) {
     filestore := NewFileStore(path.Join(u.HomeDir, ".crdb", "store"))
     d.database.RegisterStorage(filestore)
 
+    // TODO: Make configurable.
+    ipfsstore := NewIPFSStore("127.0.0.1:5001")
+    d.database.RegisterStorage(ipfsstore)
+
     // Register cryptographic methods.
     aes128cbc, _ := NewAESCryptoMethod(AES_128_KEY_SIZE)
     d.database.RegisterCryptoMethod(aes128cbc)
