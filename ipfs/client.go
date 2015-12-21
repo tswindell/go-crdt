@@ -4,7 +4,8 @@ import (
     "encoding/json"
     "fmt"
     "io"
-    "io/ioutil"
+    "reflect"
+    "time"
 
     "github.com/ipfs/go-ipfs/notifications"
     "github.com/ipfs/go-ipfs/p2p/peer"
@@ -19,33 +20,14 @@ import (
 )
 
 type Client struct {
-    http.Client
+    hostport string
 
-    NodeInfo NodeId
-}
-
-type NodeId struct {
-                 ID string
-          PublicKey string
-          Addresses []string
-       AgentVersion string
-    ProtocolVersion string
-}
-
-type QueryMessage struct {
-           ID string
-         Type int
-    Responses []*peer.PeerInfo
-        Extra string
-}
-
-type IpnsResponse struct {
-    Path string
+    PeerId string
 }
 
 func NewClient(hostport string) *Client {
     d := new(Client)
-    d.Client = http.NewClient(hostport)
+    d.hostport = hostport
     return d
 }
 
@@ -53,13 +35,13 @@ func (d *Client) Connect() error {
     nodeInfo, e := d.Id()
     if e != nil { return e }
 
-    d.NodeInfo = nodeInfo
+    d.PeerId = nodeInfo.ID
 
     return nil
 }
 
 func (d *Client) IsConnected() bool {
-    return len(d.NodeInfo.ID) > 0
+    return len(d.PeerId) > 0
 }
 
 func Multihash(data []byte) string {
@@ -68,38 +50,43 @@ func Multihash(data []byte) string {
     return base58.Encode(h)
 }
 
-func (d *Client) Get(path string) ([]byte, error) {
-    return d.DoBasicRequest([]string{"cat", path}, nil, commands.CatCmd)
-}
+func (d *Client) Id() (commands.IdOutput, error) {
+    response, e := d.DoRequest([]string{"id"}, nil, commands.IDCmd)
+    if e != nil { return commands.IdOutput{}, e }
+    defer response.Close()
 
-func (d *Client) Id() (NodeId, error) {
-    var result NodeId
-
-    decoder, e := d.DoJSONRequest([]string{"id"}, nil, commands.IDCmd)
-    if e != nil { return result, e }
-    decoder.Decode(&result)
-
-    return result, nil
+    value, ok := response.Output().(*commands.IdOutput)
+    if !ok {
+        return commands.IdOutput{}, fmt.Errorf("Failed to cast output object.")
+    }
+    return *value, nil
 }
 
 func (d *Client) ObjectGet(mh string) (commands.Node, error) {
-    var result commands.Node
+    response, e := d.DoRequest([]string{"object", "get", mh}, nil,
+                                        commands.ObjectCmd.Subcommands["get"])
+    if e != nil { return commands.Node{}, e }
+    defer response.Close()
 
-    decoder, e := d.DoJSONRequest([]string{"object", "get", mh}, nil, commands.ObjectCmd)
-    if e != nil { return result, e }
-    decoder.Decode(&result)
-
-    return result, nil
+    value, ok := response.Output().(*commands.Node)
+    if !ok {
+        return commands.Node{}, fmt.Errorf("Failed to cast output object.")
+    }
+    return *value, nil
 }
 
 func (d *Client) ObjectAddLink(mh string, name string, link string) (commands.Object, error) {
-    var result commands.Object
-    decoder, e := d.DoJSONRequest([]string{"object", "patch", mh},
-                                  []string{"add-link", name, link},
-                                  commands.ObjectCmd.Subcommands["patch"])
-    if e != nil { return result, e }
-    decoder.Decode(&result)
-    return result, nil
+    response, e := d.DoRequest([]string{"object", "patch", mh},
+                               []string{"add-link", name, link},
+                               commands.ObjectCmd.Subcommands["patch"])
+    if e != nil { return commands.Object{}, e }
+    defer response.Close()
+
+    value, ok := response.Output().(*commands.Object)
+    if !ok {
+        return commands.Object{}, fmt.Errorf("Failed to cast output object.")
+    }
+    return *value, nil
 }
 
 func (d *Client) ObjectPutData(data []byte) (commands.Object, error) {
@@ -113,6 +100,8 @@ func (d *Client) ObjectPutString(data string) (commands.Object, error) {
 
 func (d *Client) ObjectPut(node commands.Node) (commands.Object, error) {
     var result commands.Object
+
+    client := http.NewClient(d.hostport)
 
     path := []string{"object", "put"}
     opt, e := commands.ObjectCmd.GetOptions(nil)
@@ -132,8 +121,9 @@ func (d *Client) ObjectPut(node commands.Node) (commands.Object, error) {
     req, e := cmd.NewRequest(path, nil, nil, dirw, commands.ObjectCmd, opt)
     if e != nil { return result, e }
 
-    res, e := d.Send(req)
+    res, e := client.Send(req)
     if e != nil { return result, e }
+    defer res.Close()
 
     reader, e := res.Reader()
     if e != nil { return result, e }
@@ -145,69 +135,94 @@ func (d *Client) ObjectPut(node commands.Node) (commands.Object, error) {
 }
 
 func (d *Client) FindProvs(mh string, ch chan *peer.PeerInfo) error {
+    client := http.NewClient(d.hostport)
+
     path   := []string{"dht", "findprovs"}
     c := commands.DhtCmd.Subcommands["findprovs"]
     opt, e := c.GetOptions(nil)
     if e != nil { return e }
 
+    LogInfo("Searching for peers who provide: %s", mh)
     req, e := cmd.NewRequest(path, nil, []string{mh}, nil, c, opt)
     if e != nil { return e }
 
-    res, e := d.Send(req)
+    res, e := client.Send(req)
     if e != nil {
         LogError("Failed to send request: %v", e)
-        d.NodeInfo = NodeId{}
+        d.PeerId = ""
         return e
     }
-
-    reader, e := res.Reader()
-    if e != nil { return e }
     defer res.Close()
 
-    go func() {
-        decoder := json.NewDecoder(reader)
+    if res.Error() != nil {
+        LogError(res.Error().Message)
+        return fmt.Errorf(res.Error().Message)
+    }
 
-        for decoder.More() {
-            var mesg QueryMessage
+    out, ok := res.Output().(<-chan interface{})
+    if !ok {
+        LogError("Failed to get output channel")
+        return fmt.Errorf("Failed to get output channel")
+    }
 
-            decoder.Decode(&mesg)
-            if mesg.Type == int(notifications.PeerResponse) {
-                for _, peer := range mesg.Responses { ch<- peer }
-            }
+    for {
+        var obj *notifications.QueryEvent
+        var ok   bool
 
-            if mesg.Type == int(notifications.FinalPeer) { break }
-            if mesg.Type == int(notifications.QueryError) { break }
+        select {
+            case v := <-out:
+                obj, ok = v.(*notifications.QueryEvent)
+
+            case <-time.After(time.Second * 5):
+                break
         }
 
-        LogInfo("Closing findprovs channel")
-        res.Close()
-        close(ch)
-    }()
+        if !ok {
+            LogError("Failed to cast QueryEvent")
+            break
+        }
+
+        LogInfo("QueryEvent: Type=%d", obj.Type)
+
+        if obj.Type == notifications.Provider {
+            for _, peer := range obj.Responses {
+                LogInfo("Adding peer response for: %s", peer.ID.Pretty())
+                ch<- peer
+            }
+        }
+    }
+    close(ch)
 
     return nil
 }
 
 func (d *Client) NamePublish(mh string) (commands.IpnsEntry, error) {
-    var result commands.IpnsEntry
+    response, e := d.DoRequest([]string{"name", "publish", mh}, nil, commands.PublishCmd)
+    if e != nil { return commands.IpnsEntry{}, e }
+    defer response.Close()
 
-    decoder, e := d.DoJSONRequest([]string{"name", "publish", mh}, nil, commands.NameCmd)
-    if e != nil { return result, e }
-    decoder.Decode(&result)
-
-    return result, nil
+    value, ok := response.Output().(*commands.IpnsEntry)
+    if !ok {
+        return commands.IpnsEntry{}, fmt.Errorf("Failed to cast output object.")
+    }
+    return *value, nil
 }
 
-func (d *Client) NameResolve(mh string) (IpnsResponse, error) {
-    var result IpnsResponse
+func (d *Client) NameResolve(mh string) (commands.ResolvedPath, error) {
+    response, e := d.DoRequest([]string{"name", "resolve", mh}, nil, commands.ResolveCmd)
+    if e != nil { return commands.ResolvedPath{}, e }
+    response.Close()
 
-    decoder, e := d.DoJSONRequest([]string{"name", "resolve", mh}, nil, commands.NameCmd)
-    if e != nil { return result, e }
-    decoder.Decode(&result)
-
-    return result, nil
+    value, ok := response.Output().(*commands.ResolvedPath)
+    if !ok {
+        return commands.ResolvedPath{}, fmt.Errorf("Failed to cast output object.")
+    }
+    return *value, nil
 }
 
-func (d *Client) DoReaderRequest(path []string, args []string, c *cmd.Command) (io.Reader, error) {
+func (d *Client) DoRequest(path []string, args []string, c *cmd.Command) (cmd.Response, error) {
+    client := http.NewClient(d.hostport)
+
     opt, e := c.GetOptions(nil)
     if e != nil { return nil, e }
 
@@ -219,32 +234,19 @@ func (d *Client) DoReaderRequest(path []string, args []string, c *cmd.Command) (
                              opt)   // options (defaults)
     if e != nil { return nil, e }
 
-    res, e := d.Send(req)
+    res, e := client.Send(req)
     if e != nil {
         LogError("Failed to send request: %v", e)
-        d.NodeInfo = NodeId{}
+        d.PeerId = ""
         return nil, e
     }
 
     if res.Error() != nil {
         LogError("Received error response: %s", res.Error().Message)
+        res.Close()
         return nil, fmt.Errorf(res.Error().Message)
     }
 
-    defer res.Close()
-
-    return res.Reader()
-}
-
-func (d *Client) DoBasicRequest(path []string, args []string, c *cmd.Command) ([]byte, error) {
-    reader, e := d.DoReaderRequest(path, args, c)
-    if e != nil { return nil, e }
-    return ioutil.ReadAll(reader)
-}
-
-func (d *Client) DoJSONRequest(path []string, args []string, c *cmd.Command) (*json.Decoder, error) {
-    reader, e := d.DoReaderRequest(path, args, c)
-    if e != nil { return nil, e }
-    return json.NewDecoder(reader), nil
+    return res, nil
 }
 

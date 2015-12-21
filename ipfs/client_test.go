@@ -82,8 +82,7 @@ func Test_Client_FindProvs(t *testing.T) {
     ch := make(chan *peer.PeerInfo)
 
     // Everyone has a copy of the empty directory IPFS object.
-    e := cl.FindProvs("QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn", ch)
-    if e != nil { t.Fatal(e) }
+    go cl.FindProvs("QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn", ch)
 
     for p := range ch {
         LogInfo("  Found peer: %s", p.ID.Pretty())
@@ -100,7 +99,7 @@ func Test_Client_NamePublish(t *testing.T) {
 func Test_Client_NameResolve(t *testing.T) {
     if e := initClient(t); e != nil { t.Fatal("Failed to connect") }
 
-    r, e := cl.NameResolve(cl.NodeInfo.ID)
+    r, e := cl.NameResolve(cl.PeerId)
     if e != nil { t.Fatal(e) }
 
     if len(r.Path) == 0 {
@@ -110,17 +109,16 @@ func Test_Client_NameResolve(t *testing.T) {
 
 func Test_Client(t *testing.T) {
     client    := NewClient("127.0.0.1:5001")
-    peerId, e := client.Id()
 
     onError := func(err error) {
-        t.Error(e)
+        t.Error(e.Error())
     }
 
     if e := client.Connect(); e != nil {
         t.Fatal("Failed to connect")
     }
 
-    if e != nil { onError(e) }
+    peerId, e := client.Id()
     fmt.Println("Peer ID: ", peerId.ID)
 
     obj, e := client.ObjectPut(commands.Node{Data: `Hello, world!`})

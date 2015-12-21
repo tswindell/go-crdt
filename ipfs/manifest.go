@@ -22,9 +22,9 @@ func NewManifest(client *Client) *Manifest {
     d := &Manifest{}
     d.Client = *client
 
-    if len(d.Client.NodeInfo.ID) == 0 { return nil }
+    if len(d.Client.PeerId) == 0 { return nil }
 
-    d.PeerId = d.Client.NodeInfo.ID
+    d.PeerId = d.Client.PeerId
 
     if e := d.Resolve(); e != nil || len(d.Hash) == 0 {
         d.InitManifest()
@@ -108,7 +108,7 @@ func (d *Manifest) Resolve() error {
     if len(ipns.Path) == 0 { return fmt.Errorf("Empty IPNS response received.") }
 
     LogInfo("    Resolved %s -> %s", d.PeerId, ipns.Path)
-    d.Hash = StripHash(ipns.Path)
+    d.Hash = StripHash(ipns.Path.String())
     return nil
 }
 

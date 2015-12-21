@@ -44,10 +44,12 @@ func (d *IPFSStore) HasResource(resourceId ResourceId) bool {
     return resourceId.GetStorageId() == d.TypeId()
 }
 
-func GenerateLinkName(peerId peer.ID, id ResourceId, key ResourceKey) string {
-    in := []byte(peerId.Pretty())
+func GenerateLinkName(peerId string, id ResourceId, key ResourceKey) string {
+    in := []byte(peerId)
     in = append(in, []byte(id.GetId())...)
     in = append(in, key.KeyData()...)
+    LogInfo("GenerateLinkName: PeerId=%s, Id=%s, Key=%x :: Hash=%s",
+                               peerId, id.GetId(), key.KeyData(), ipfs.Multihash(in))
     return ipfs.Multihash(in)
 }
 
@@ -67,9 +69,10 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
     //
     // close(ch)
     //
+    LogInfo("GetData: ResourceID=%s, ResourceKey=%x", id.GetId(), key.KeyData())
 
     // Local retrieval:
-    link := GenerateLinkName(peer.ID(d.client.NodeInfo.ID), id, key)
+    link := GenerateLinkName(d.client.PeerId, id, key)
     LogInfo("Local Resource Link: %s", link)
     hash, ok := d.manifest.Links[link]
 
@@ -91,31 +94,45 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
     }
 
     // Remotes retrieval:
-    peers := make(chan *peer.PeerInfo)
+    pch := make(chan *peer.PeerInfo)
+    go d.client.FindProvs(id.GetId(), pch)
 
-    LogInfo("Initiating peer findprovs: %s", id.GetId())
-    go d.client.FindProvs(id.GetId(), peers)
+    peers := make([]string, 0)
+    for p := range pch {
+        peers = append(peers, p.ID.Pretty())
+    }
 
-    for p := range peers {
-        link := GenerateLinkName(p.ID, id, key)
+    for _, p := range peers {
+        LogInfo("Tracking peer: %s", p)
+        link := GenerateLinkName(p, id, key)
 
-        LogInfo("Found Peer Candidate: %s", p.ID.Pretty())
+        LogInfo("Found Peer Candidate: %s", p)
         LogInfo("  Attempting to resolve IPNS...")
-        ipns, e := d.client.NameResolve(p.ID.Pretty())
-        if e != nil { continue }
+        ipns, e := d.client.NameResolve(p)
+        if e != nil {
+            LogError("  Failed to resolve IPNS: %v", e)
+            continue
+        }
 
         LogInfo("  Resolved to: %s", ipns.Path)
         LogInfo("  Attempting to load manifest object...")
-        manifest, e := d.client.ObjectGet(ipfs.StripHash(ipns.Path))
-        if e != nil { continue }
+        parts := ipns.Path.Segments()
+        manifest, e := d.client.ObjectGet(parts[len(parts)-1])
+        if e != nil {
+            LogError("Failed to retrieve manifest: %v", e)
+            continue
+        }
 
         if manifest.Data != "crdt:Datastore" {
-            LogWarn("  Returned object does not appear to be a valid manifest.")
+            LogError("  Returned object does not appear to be a valid manifest.")
             continue
         }
 
         for _, lnk := range manifest.Links {
-            if lnk.Name != link { continue }
+            if lnk.Name != link {
+                LogInfo("Skipping link: %s != %s", lnk.Name, link)
+                continue
+            }
 
             LogInfo("  Found appropriate resource entry in manifest, loading data.")
             node, e := d.client.ObjectGet(lnk.Hash)
@@ -130,7 +147,6 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
         }
 
     }
-
     close(ch)
 
     return nil
@@ -138,7 +154,7 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
 
 // The SetData() instance method
 func (d *IPFSStore) SetData(id ResourceId, key ResourceKey, data []byte) error {
-    link := GenerateLinkName(peer.ID(d.client.NodeInfo.ID), id, key)
+    link := GenerateLinkName(d.client.PeerId, id, key)
 
     h, e := d.client.ObjectPutString(base64.StdEncoding.EncodeToString(data))
     if e != nil { return e }
