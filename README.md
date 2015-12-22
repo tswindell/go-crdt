@@ -72,7 +72,4 @@ GSet Sub-Commands:
   * insert <ReferenceId> <OBJECT_DATA>
   * length <ReferenceId>
   * contains <ReferenceId> <OBJECT_DATA>
-  * equals <ReferenceId> <OtherReferenceId>
-  * merge <ReferenceId> <OtherReferenceId>
-  * clone <ReferenceId>
 ```
