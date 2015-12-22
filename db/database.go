@@ -266,6 +266,12 @@ func (d *Database) Attach(resourceId ResourceId, resourceKey ResourceKey) (Refer
 // The Detach() database method removes a reference to a resource in the database.
 func (d *Database) Detach(referenceId ReferenceId) error {
     if !d.references.Remove(referenceId) { return E_INVALID_REFERENCE }
+
+    //TODO:
+    //  - If reference count gets to zero, then notify the appropriate storage
+    //  backend that the resource is no longer attached in the system. This
+    //  will be used in the case of IPFS to manage the periodic updates.
+
     return nil
 }
 
@@ -320,12 +326,15 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
 
         if e != nil {
             LogError("Decryption failed: %v", e)
-            return nil, e
+            return nil, E_INVALID_RESOURCE_DATA
         }
 
         buff := bytes.NewBuffer(data)
         s, e := buff.ReadString(byte(0x00))
-        if e != nil { return nil, e }
+        if e != nil {
+            LogError("Failed to read CRDT datatype header.")
+            return nil, E_INVALID_RESOURCE_DATA
+        }
 
         iType := ResourceType(s[:len(s) - 1])
 
@@ -355,7 +364,8 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
     }
 
     if resource == nil {
-        return nil, fmt.Errorf("Failed to restore object, could not read data.")
+        LogError("No data obtained for resource restoration.")
+        return nil, E_UNKNOWN_RESOURCE
     }
 
     LogInfo("Adding resource: %s", string(resource.Id()))
