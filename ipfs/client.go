@@ -136,6 +136,8 @@ func (d *Client) ObjectPut(node commands.Node) (commands.Object, error) {
 func (d *Client) FindProvs(mh string, ch chan *peer.PeerInfo) error {
     client := http.NewClient(d.hostport)
 
+    defer close(ch)
+
     path   := []string{"dht", "findprovs"}
     c := commands.DhtCmd.Subcommands["findprovs"]
     opt, e := c.GetOptions(nil)
@@ -173,15 +175,14 @@ func (d *Client) FindProvs(mh string, ch chan *peer.PeerInfo) error {
                 obj, ok = v.(*notifications.QueryEvent)
 
             case <-time.After(time.Second * 5):
-                break
+                LogInfo("Request timeout occured, closing connection.")
+                return nil
         }
 
         if !ok {
             LogError("Failed to cast QueryEvent")
             break
         }
-
-        LogInfo("QueryEvent: Type=%d", obj.Type)
 
         if obj.Type == notifications.Provider {
             for _, peer := range obj.Responses {
@@ -190,7 +191,6 @@ func (d *Client) FindProvs(mh string, ch chan *peer.PeerInfo) error {
             }
         }
     }
-    close(ch)
 
     return nil
 }
