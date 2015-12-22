@@ -59,7 +59,7 @@ func NewAESCryptoMethod(keysize int) (*AESCryptoMethod, error) {
     d.cryptoType = fmt.Sprintf("aes-%d-cbc", keysize * 8)
 
     d.ivsize   = aes.BlockSize
-    d.macsize  = keysize
+    d.macsize  = 32
     d.ckeysize = keysize
     d.mkeysize = keysize
     d.keysize  = d.ckeysize + d.mkeysize
