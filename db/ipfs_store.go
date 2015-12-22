@@ -28,10 +28,13 @@ func NewIPFSStore(hostport string) *IPFSStore {
 // The TypeId() instance method
 func (d *IPFSStore) TypeId() string { return "ipfs" }
 
+// The GenerateResourceId() instance method, generates some random data, and pins
+// it in IPFS to act as a resource identifier in findprovs.
 func (d *IPFSStore) GenerateResourceId() (ResourceId, error) {
     objdata := make([]byte, 256)
     rand.Read(objdata)
 
+    //FIXME: This could probably be done better somewhere else ...
     s, e := d.client.ObjectPutData(objdata)
     if e != nil { return ResourceId(""), e }
 
@@ -40,10 +43,17 @@ func (d *IPFSStore) GenerateResourceId() (ResourceId, error) {
 
 // The HasResource() instance method
 func (d *IPFSStore) HasResource(resourceId ResourceId) bool {
-    //TODO: Should we return local cache presence through refs local?
+    //TODO:
+    //  - Should we return local cache presence through refs local?
+    //    . Maybe we can add HasLocalResource(resourceId ResourceId) method. 
     return resourceId.GetStorageId() == d.TypeId()
 }
 
+// The GenerateLinkName() function, creates a determinate IPFS style base58
+// encoded hash to use as a unique link name in a CRDT manifest node. This
+// hash is unique to the peerId, so no two IPFS peers share the same link
+// name. This adds a level of obfuscation to the manifest resource system
+// to allow some level of data masking.
 func GenerateLinkName(peerId string, id ResourceId, key ResourceKey) string {
     in := []byte(peerId)
     in = append(in, []byte(id.GetId())...)
@@ -53,7 +63,8 @@ func GenerateLinkName(peerId string, id ResourceId, key ResourceKey) string {
     return ipfs.Multihash(in)
 }
 
-// The GetData() instance method
+// The GetData() instance method, is the IPFS storage types implementation of the
+// crdb.Storage interface.
 func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) error {
     //TODO:
     //  - We need to add rules for large datasets
@@ -97,6 +108,8 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
     pch := make(chan *peer.PeerInfo)
     go d.client.FindProvs(id.GetId(), pch)
 
+    //FIXME: Work around for buggy client not handling multiple simultaneous
+    //     IPFS queries.
     peers := make([]string, 0)
     for p := range pch {
         peers = append(peers, p.ID.Pretty())
@@ -115,11 +128,11 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
         }
 
         LogInfo("  Resolved to: %s", ipns.Path)
-        LogInfo("  Attempting to load manifest object...")
+        LogInfo("  Downloading manifest object from peer...")
         parts := ipns.Path.Segments()
         manifest, e := d.client.ObjectGet(parts[len(parts)-1])
         if e != nil {
-            LogError("Failed to retrieve manifest: %v", e)
+            LogError("  Failed to retrieve manifest: %v", e)
             continue
         }
 
@@ -128,6 +141,8 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
             continue
         }
 
+        //TODO: Could this be made more simple by retrieving IPNS sub-path?
+        //          I.E. - /ipns/<PEER_ID>/<GENERATED_LINK_NAME>
         for _, lnk := range manifest.Links {
             if lnk.Name != link {
                 LogInfo("Skipping link: %s != %s", lnk.Name, link)
@@ -136,23 +151,41 @@ func (d *IPFSStore) GetData(id ResourceId, key ResourceKey, ch chan []byte) erro
 
             LogInfo("  Found appropriate resource entry in manifest, loading data.")
             node, e := d.client.ObjectGet(lnk.Hash)
-            if e != nil || len(node.Data) == 0 { continue }
+            if e != nil {
+                LogError("  Failed to retrieve CRDT object data: %v", e)
+                break
+            }
+
+            if len(node.Data) == 0 {
+                LogError("  Received empty CRDT object data!")
+                break
+            }
 
             v, e := base64.StdEncoding.DecodeString(node.Data)
-            if e != nil { continue }
+            if e != nil {
+                LogError("  Failed to decode IPFS node data: %v", e)
+                break
+            }
 
             LogInfo("  Successfully decoded data, writing to output channel.")
             ch<- v
+
+            LogInfo("  Downloading resource object.")
+            if _, e := d.client.ObjectGet(id.GetId()); e != nil {
+                LogError("  Failed to download resource object: %v", e)
+                break
+            }
             break
         }
 
     }
-    close(ch)
 
+    close(ch)
     return nil
 }
 
-// The SetData() instance method
+// The SetData() instance method, is the IPFS storage types implementation of
+// the crdb Storage interface.
 func (d *IPFSStore) SetData(id ResourceId, key ResourceKey, data []byte) error {
     link := GenerateLinkName(d.client.PeerId, id, key)
 
