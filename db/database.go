@@ -25,23 +25,24 @@ package crdb
 
 import (
     "bytes"
+    "errors"
     "fmt"
 )
 
 var (
-    E_UNKNOWN_TYPE          = fmt.Errorf("crdt:unknown-resource-type")
-    E_UNKNOWN_RESOURCE      = fmt.Errorf("crdt:unknown-resource-id")
-    E_UNKNOWN_REFERENCE     = fmt.Errorf("crdt:unknown-reference-id")
-    E_UNKNOWN_STORAGE       = fmt.Errorf("crdt:unknown-storage-type")
-    E_UNKNOWN_CRYPTO        = fmt.Errorf("crdt:unknown-crypto-method")
-    E_INVALID_TYPE          = fmt.Errorf("crdt:invalid-resource-type")
-    E_INVALID_RESOURCE      = fmt.Errorf("crdt:invalid-resource-id")
-    E_INVALID_KEY           = fmt.Errorf("crdt:invalid-resource-key")
-    E_INVALID_REFERENCE     = fmt.Errorf("crdt:invalid-reference")
-    E_INVALID_CRYPTO        = fmt.Errorf("crdt:invalid-crypto-id")
-    E_INVALID_STORAGE       = fmt.Errorf("crdt:invalid-storage-id")
-    E_INVALID_RESOURCE_DATA = fmt.Errorf("crdt:invalid-resource-data")
-    E_TYPE_MISMATCH         = fmt.Errorf("crdt:resource-type-mismatch")
+    E_UNKNOWN_TYPE          = errors.New("crdt:unknown-resource-type")
+    E_UNKNOWN_RESOURCE      = errors.New("crdt:unknown-resource-id")
+    E_UNKNOWN_REFERENCE     = errors.New("crdt:unknown-reference-id")
+    E_UNKNOWN_STORAGE       = errors.New("crdt:unknown-storage-type")
+    E_UNKNOWN_CRYPTO        = errors.New("crdt:unknown-crypto-method")
+    E_INVALID_TYPE          = errors.New("crdt:invalid-resource-type")
+    E_INVALID_RESOURCE      = errors.New("crdt:invalid-resource-id")
+    E_INVALID_KEY           = errors.New("crdt:invalid-resource-key")
+    E_INVALID_REFERENCE     = errors.New("crdt:invalid-reference")
+    E_INVALID_CRYPTO        = errors.New("crdt:invalid-crypto-id")
+    E_INVALID_STORAGE       = errors.New("crdt:invalid-storage-id")
+    E_INVALID_RESOURCE_DATA = errors.New("crdt:invalid-resource-data")
+    E_TYPE_MISMATCH         = errors.New("crdt:resource-type-mismatch")
 )
 
 
