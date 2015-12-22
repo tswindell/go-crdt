@@ -354,6 +354,10 @@ func (d *Database) Restore(resourceId ResourceId, resourceKey ResourceKey) (Reso
 
     }
 
+    if resource == nil {
+        return nil, fmt.Errorf("Failed to restore object, could not read data.")
+    }
+
     LogInfo("Adding resource: %s", string(resource.Id()))
     d.datastore.Add(resource)
     return resource, nil
