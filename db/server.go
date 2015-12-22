@@ -82,6 +82,13 @@ func NewServer() (*Server, error) {
     aes256cbc, _ := NewAESCryptoMethod(AES_256_KEY_SIZE)
     d.database.RegisterCryptoMethod(aes256cbc)
 
+    rsa1024, _ := NewRSACryptoMethod(1024)
+    d.database.RegisterCryptoMethod(rsa1024)
+    rsa2048, _ := NewRSACryptoMethod(2048)
+    d.database.RegisterCryptoMethod(rsa2048)
+    rsa4096, _ := NewRSACryptoMethod(4096)
+    d.database.RegisterCryptoMethod(rsa4096)
+
     // Register resource data types.
     d.database.RegisterType(NewSetResourceType(d.database,
                                                GROWONLYSET_RESOURCE_TYPE,
