@@ -27,8 +27,63 @@ import (
     "testing"
 
     "bytes"
+    "fmt"
     "strings"
 )
+
+var (
+    methods []CryptoMethod
+)
+
+func InitMethods(t *testing.T) {
+    if methods != nil { return }
+
+    methods = make([]CryptoMethod, 0)
+
+    var m CryptoMethod
+
+    // AES CBC Based Encryption Methods
+    m, _ = NewAESCryptoMethod(AES_128_KEY_SIZE)
+    methods = append(methods, m)
+    m, _ = NewAESCryptoMethod(AES_194_KEY_SIZE)
+    methods = append(methods, m)
+    m, _ = NewAESCryptoMethod(AES_256_KEY_SIZE)
+    methods = append(methods, m)
+
+    // RSA Based Encryption Methods
+    m, _ = NewRSACryptoMethod(1028) // Insecure
+    methods = append(methods, m)
+    m, _ = NewRSACryptoMethod(2048)
+    methods = append(methods, m)
+    m, _ = NewRSACryptoMethod(4096)
+    methods = append(methods, m)
+}
+
+func TestCryptoMethods(t *testing.T) {
+    InitMethods(t)
+
+    for _, m := range methods {
+        fmt.Printf("Testing cryptography method: %s\n", m.TypeId())
+
+        fmt.Printf("  Generating key...")
+        key := m.GenerateKey()
+        fmt.Println("Done")
+
+        if key.TypeId() != m.TypeId() { t.Fatal("Key and method type mismatch") }
+        if len(key.KeyData()) == 0 { t.Fatal("Key length is zero!") }
+
+        clearText := []byte("Hello, world!")
+        encrypted, e := m.Encrypt(key, clearText)
+        if e != nil { t.Fatal(e) }
+
+        decrypted, e := m.Decrypt(key, encrypted)
+        if e != nil { t.Fatal(e) }
+
+        if !bytes.Equal(clearText, decrypted) {
+            t.Fatal("Message data mismatch.")
+        }
+    }
+}
 
 func TestAESGenerateKey(t *testing.T) {
     method, _ := NewAESCryptoMethod(AES_256_KEY_SIZE)
