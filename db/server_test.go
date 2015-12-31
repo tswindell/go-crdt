@@ -3,6 +3,7 @@ package crdb
 import "testing"
 import "fmt"
 import "os"
+import "time"
 
 var s *Server
 var c *Client
@@ -15,13 +16,18 @@ func TestMain(m *testing.M) {
         os.Exit(1)
     }
 
-    if e := s.Listen("127.0.0.1:0"); e != nil {
-        fmt.Printf("Failed to bind service listener: %v\n", e)
-        os.Exit(1)
-    }
+    go func() {
+        if e := s.Listen("127.0.0.1:0"); e != nil {
+            fmt.Printf("Failed to bind service listener: %v\n", e)
+            os.Exit(1)
+        }
+    }()
 
-    c = NewClient()
-    c.ConnectToHost(s.HostAddr())
+    select {
+    case <-time.After(time.Second * 2):
+        c = NewClient()
+        c.ConnectToHost(s.HostAddr())
+    }
 
     os.Exit(m.Run())
 }

@@ -120,9 +120,7 @@ func (d *Server) Listen(hostport string) error {
     LogInfo("Listening on %s:%d\n", hostname, port)
 
     // Start serving requests.
-    go func() { d.service.Serve(*d.listener) }()
-
-    return nil
+    return d.service.Serve(*d.listener)
 }
 
 func __hostport_from_listener(listener *net.Listener) (string, int, error) {
