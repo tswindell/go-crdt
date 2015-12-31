@@ -67,11 +67,13 @@ func (d *FileStore) GetData(resourceId ResourceId, key ResourceKey, ch chan []by
     if !d.HasResource(resourceId) { return E_UNKNOWN_RESOURCE }
 
     data, e := ioutil.ReadFile(path.Join(d.basepath, resourceId.GetId()))
-    if e != nil { return e }
+    if e != nil {
+        close(ch)
+        return e
+    }
 
     ch<- data
     close(ch)
-
     return nil
 }
 
