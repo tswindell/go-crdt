@@ -181,6 +181,13 @@ func (d *CryptoMethodDirectory) List() []string {
 }
 
 
+// The Notification type
+type Notification struct {
+    Type    int
+    Object []byte
+}
+
+
 // The Database type
 type Database struct {
     datatypes  ResourceTypeRegistry
@@ -188,6 +195,8 @@ type Database struct {
     references ReferenceTable
     crypto     CryptoMethodDirectory
     storage    StorageDirectory
+
+    subscriptions map[string]map[chan Notification]struct{}
 }
 
 // The NewDatabase() function returns a newly created database instance.
@@ -274,6 +283,28 @@ func (d *Database) Detach(referenceId ReferenceId) error {
     //  will be used in the case of IPFS to manage the periodic updates.
 
     return nil
+}
+
+func (d *Database) Subscribe(referenceId ReferenceId) (chan Notification, error) {
+    resourceId := d.references.Resolve(referenceId)
+    if !resourceId.IsValid() { return nil, E_UNKNOWN_REFERENCE }
+
+    v, f := d.subscriptions[string(resourceId)]
+    if !f {
+        v = make(map[chan Notification]struct{})
+        d.subscriptions[string(resourceId)] = v
+    }
+
+    ch := make(chan Notification)
+    v[ch] = struct{}{}
+
+    return ch, nil
+}
+
+func (d *Database) Notify(resourceId ResourceId, nType int, object []byte) {
+    for k, _ := range d.subscriptions[string(resourceId)] {
+        k <- Notification {Type: nType, Object: object}
+    }
 }
 
 // The Commit() database method commits a resource by reference to persistent

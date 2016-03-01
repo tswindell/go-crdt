@@ -187,6 +187,35 @@ func (d *Server) Detach(ctx context.Context, m *pb.DetachRequest) (*pb.DetachRes
     return &pb.DetachResponse{Status: status}, nil
 }
 
+// The Subscribe() server method
+func (d *Server) Subscribe(m *pb.SubscribeRequest, stream pb.CRDT_SubscribeServer) error {
+    referenceId := ReferenceId(m.ReferenceId)
+
+    ch, e := d.database.Subscribe(referenceId)
+    if e != nil {
+        LogError("Subscribe error: %s", e.Error())
+        return e
+    }
+
+    for ev := range ch {
+        LogInfo("Event: %s", ev.Type)
+
+        event := pb.Notification {
+            Type: pb.Notification_EventType(ev.Type),
+            Object: &pb.ResourceObject {
+                ReferenceId: string(referenceId),
+                Object: ev.Object,
+            },
+        }
+
+        if e := stream.Send(&event); e != nil {
+            return e
+        }
+    }
+
+    return nil
+}
+
 // The Commit() server method
 func (d *Server) Commit(ctx context.Context, m *pb.CommitRequest) (*pb.CommitResponse, error) {
     referenceId := ReferenceId(m.ReferenceId)

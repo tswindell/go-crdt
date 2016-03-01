@@ -20,6 +20,8 @@ It has these top-level messages:
 	AttachResponse
 	DetachRequest
 	DetachResponse
+	SubscribeRequest
+	Notification
 	CommitRequest
 	CommitResponse
 	EqualsRequest
@@ -56,6 +58,26 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+
+type Notification_EventType int32
+
+const (
+	Notification_Inserted Notification_EventType = 0
+	Notification_Removed  Notification_EventType = 1
+)
+
+var Notification_EventType_name = map[int32]string{
+	0: "Inserted",
+	1: "Removed",
+}
+var Notification_EventType_value = map[string]int32{
+	"Inserted": 0,
+	"Removed":  1,
+}
+
+func (x Notification_EventType) String() string {
+	return proto.EnumName(Notification_EventType_name, int32(x))
+}
 
 type EmptyMessage struct {
 }
@@ -169,6 +191,30 @@ func (*DetachResponse) ProtoMessage()    {}
 func (m *DetachResponse) GetStatus() *Status {
 	if m != nil {
 		return m.Status
+	}
+	return nil
+}
+
+type SubscribeRequest struct {
+	ReferenceId string `protobuf:"bytes,1,opt,name=referenceId" json:"referenceId,omitempty"`
+}
+
+func (m *SubscribeRequest) Reset()         { *m = SubscribeRequest{} }
+func (m *SubscribeRequest) String() string { return proto.CompactTextString(m) }
+func (*SubscribeRequest) ProtoMessage()    {}
+
+type Notification struct {
+	Type   Notification_EventType `protobuf:"varint,1,opt,name=type,enum=crdt.Notification_EventType" json:"type,omitempty"`
+	Object *ResourceObject        `protobuf:"bytes,2,opt,name=object" json:"object,omitempty"`
+}
+
+func (m *Notification) Reset()         { *m = Notification{} }
+func (m *Notification) String() string { return proto.CompactTextString(m) }
+func (*Notification) ProtoMessage()    {}
+
+func (m *Notification) GetObject() *ResourceObject {
+	if m != nil {
+		return m.Object
 	}
 	return nil
 }
@@ -438,6 +484,10 @@ func (m *SetContainsResponse) GetStatus() *Status {
 	return nil
 }
 
+func init() {
+	proto.RegisterEnum("crdt.Notification_EventType", Notification_EventType_name, Notification_EventType_value)
+}
+
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConn
@@ -451,6 +501,8 @@ type CRDTClient interface {
 	Attach(ctx context.Context, in *AttachRequest, opts ...grpc.CallOption) (*AttachResponse, error)
 	// Detach ReferenceId reference from internal datastore.
 	Detach(ctx context.Context, in *DetachRequest, opts ...grpc.CallOption) (*DetachResponse, error)
+	// Subscribe to data set modifications.
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CRDT_SubscribeClient, error)
 	// Commit resource to persistent storage.
 	Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error)
 	// Test Equality of two resources by reference.
@@ -503,6 +555,38 @@ func (c *cRDTClient) Detach(ctx context.Context, in *DetachRequest, opts ...grpc
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *cRDTClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CRDT_SubscribeClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_CRDT_serviceDesc.Streams[0], c.cc, "/crdt.CRDT/Subscribe", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &cRDTSubscribeClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CRDT_SubscribeClient interface {
+	Recv() (*Notification, error)
+	grpc.ClientStream
+}
+
+type cRDTSubscribeClient struct {
+	grpc.ClientStream
+}
+
+func (x *cRDTSubscribeClient) Recv() (*Notification, error) {
+	m := new(Notification)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *cRDTClient) Commit(ctx context.Context, in *CommitRequest, opts ...grpc.CallOption) (*CommitResponse, error) {
@@ -604,6 +688,8 @@ type CRDTServer interface {
 	Attach(context.Context, *AttachRequest) (*AttachResponse, error)
 	// Detach ReferenceId reference from internal datastore.
 	Detach(context.Context, *DetachRequest) (*DetachResponse, error)
+	// Subscribe to data set modifications.
+	Subscribe(*SubscribeRequest, CRDT_SubscribeServer) error
 	// Commit resource to persistent storage.
 	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
 	// Test Equality of two resources by reference.
@@ -661,6 +747,27 @@ func _CRDT_Detach_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		return nil, err
 	}
 	return out, nil
+}
+
+func _CRDT_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CRDTServer).Subscribe(m, &cRDTSubscribeServer{stream})
+}
+
+type CRDT_SubscribeServer interface {
+	Send(*Notification) error
+	grpc.ServerStream
+}
+
+type cRDTSubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *cRDTSubscribeServer) Send(m *Notification) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _CRDT_Commit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
@@ -840,7 +947,13 @@ var _CRDT_serviceDesc = grpc.ServiceDesc{
 			Handler:    _CRDT_IsSupportedCryptoMethod_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Subscribe",
+			Handler:       _CRDT_Subscribe_Handler,
+			ServerStreams: true,
+		},
+	},
 }
 
 // Client API for GrowOnlySet service

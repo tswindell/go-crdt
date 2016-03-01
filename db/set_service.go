@@ -216,6 +216,8 @@ func (d *SetResourceService) Insert(ctx context.Context, m *pb.SetInsertRequest)
     } else if !context.(SetInsertInterface).Insert(base64.StdEncoding.EncodeToString(m.Object.Object)) {
         status.Success = false
         status.ErrorType = E_ALREADY_INSERTED.Error()
+    } else {
+        go func() { d.database.Notify(r.Id(), 0, m.Object.Object) }()
     }
 
     return &pb.SetInsertResponse{Status: status}, nil
@@ -230,6 +232,11 @@ func (d *SetResourceService) Remove(ctx context.Context, m *pb.SetRemoveRequest)
 
     context := r.(*SetResource).context
     v := context.(SetRemoveInterface).Remove(base64.StdEncoding.EncodeToString(m.Object.Object))
+
+    if v {
+        go func() { d.database.Notify(r.Id(), 1, m.Object.Object) }()
+    }
+
     return &pb.SetRemoveResponse{Status:&pb.Status{Success:v}}, nil
 }
 

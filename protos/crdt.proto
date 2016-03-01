@@ -17,6 +17,9 @@ service CRDT {
     // Detach ReferenceId reference from internal datastore.
     rpc Detach(DetachRequest) returns (DetachResponse) {}
 
+    // Subscribe to data set modifications.
+    rpc Subscribe(SubscribeRequest) returns (stream Notification) {}
+
     // Commit resource to persistent storage.
     rpc Commit(CommitRequest) returns (CommitResponse) {}
 
@@ -90,6 +93,20 @@ message DetachRequest {
 
 message DetachResponse {
     Status status = 1;
+}
+
+message SubscribeRequest {
+    string referenceId = 1;
+}
+
+message Notification {
+    enum EventType {
+        Inserted = 0;
+        Removed  = 1;
+    }
+
+    EventType type = 1;
+    ResourceObject object = 2;
 }
 
 message CommitRequest {
